@@ -32,8 +32,10 @@ def start():
 def run_query(line):
     toks = shlex.split(line)                     # '1 "90"' → ['1','90']; 引号内空格不劈
     tpl = (QUERY_DIR / f"q{toks[0]}.txt").read_text()
-    parts = re.split(r"\[[A-Z0-9_]+\]", tpl)
-    sql = parts[0] + "".join(v + p for v, p in zip(toks[1:], parts[1:], strict=True))
+    names = dict.fromkeys(re.findall(r"\[([A-Z0-9_]+)\]", tpl))   # 参数名去重,按首次出现保序
+    sql = tpl
+    for k, v in zip(names, toks[1:], strict=True):                # 每个名字只给一次值,同名全部替换
+        sql = sql.replace(f"[{k}]", v)
     result = _con.execute(sql)
     rows = result.fetchall()
     cols = [d[0] for d in result.description]
