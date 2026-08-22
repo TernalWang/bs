@@ -30,4 +30,25 @@ void query(Database*) {
     }
 }
 
-//<<example parser call code>>
+
+// Example code for how to use the parse functions together:
+//for (const auto& req : requests) {
+//    switch (req.id) {
+//        case 1: {
+//            Q1Args args = parse_q1(req);
+//            run_q1(db, args);
+//            break;
+//        }
+//        case 2: {
+//            Q2Args args = parse_q2(req);
+//            run_q2(db, args);
+//            break;
+//        }
+//        ...
+//        case 22: {
+//            Q22Args args = parse_q22(req);
+//            run_q22(db, args);
+//            break;
+//        }
+//    }
+//}

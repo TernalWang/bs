@@ -9,6 +9,7 @@ from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import start as start_duckdb
 
 INFRA = Path(__file__).parent / "infra"
+TPCH_SF1 = Path(__file__).parent / "tpch_parquet" / "sf1"
 
 # ========== 核心 3：一句话进去，agent 自己循环调工具直到完成 ==========
 if __name__ == "__main__":
@@ -20,6 +21,9 @@ if __name__ == "__main__":
 
     print("Copy infra into workspace")
     shutil.copytree(INFRA, WORKSPACE / "infra", dirs_exist_ok=False)
+
+    print("Copy tpch sf1 into workspace")
+    shutil.copytree(TPCH_SF1, WORKSPACE / "tpch_parquet" / "sf1", dirs_exist_ok=False)
 
     print("Start duckdb")
     start_duckdb()
