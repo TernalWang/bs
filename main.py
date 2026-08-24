@@ -25,18 +25,18 @@ if __name__ == "__main__":
     shutil.copytree(INFRA, WORKSPACE / "infra", dirs_exist_ok=False)
 
     print("Copy tpch sf1 into workspace")
-    shutil.copytree(TPCH_SF1, WORKSPACE / "tpch_parquet" / "sf1", dirs_exist_ok=False)
+    shutil.copytree(TPCH_SF1, WORKSPACE / "parquets" / "sf1", dirs_exist_ok=False)
 
     print("Copy tpch_query into workspace")
-    shutil.copytree(TPCH_QUERY, WORKSPACE / "tpch_query", dirs_exist_ok=False)
+    shutil.copytree(TPCH_QUERY, WORKSPACE / "querys", dirs_exist_ok=False)
 
     print("Start duckdb")
     start_duckdb()
 
     print("Generate duckdb plans")
-    (WORKSPACE / "duckdb_plan").mkdir()
+    (WORKSPACE / "duckdb_plans").mkdir()
     for n in range(1, 23):
-        (WORKSPACE / "duckdb_plan" / f"plan_q{n}.txt").write_text(json.dumps(run_query_json((HUMAN_INPUT / f"q{n}.txt").read_text().strip())[3], indent=2))
+        (WORKSPACE / "duckdb_plans" / f"plan_q{n}.txt").write_text(json.dumps(run_query_json((HUMAN_INPUT / f"q{n}.txt").read_text().strip())[3], indent=2))
 
     print("模型思考期间无输出是正常的；每出现一行 [tool] = 模型调了一次工具")
     result = asyncio.run(Runner.run(agent, input="不要浪费太多token, 试试每一个tools功能正不正常就行然后写个 summary.txt"))
