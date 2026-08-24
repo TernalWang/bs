@@ -1,5 +1,6 @@
 from agents import function_tool
 
+from tools.compile import compile_tool
 from tools.shell import shell_tool
 from tools.write import write_tool
 
@@ -17,3 +18,9 @@ def run_shell(command: str) -> str:
 def write_file(path: str, content: str) -> str:
     """在 workspace 下创建/覆盖文件。"""
     return write_tool.write_file(path, content)
+
+
+@function_tool
+def compile_cpp() -> str:
+    """编译 workspace/infra 引擎(bash infra/build.sh),成功或编译错误原样返回。"""
+    return compile_tool.compile_cpp()
