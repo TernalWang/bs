@@ -17,9 +17,29 @@ client = AsyncOpenAI(
 model = OpenAIChatCompletionsModel(model="glm-5.2", openai_client=client)
 
 # ========== 核心 2：agent = 模型 + 指令 + 工具 ==========
-agent = Agent(
-    name="demo",
+queryagent = Agent(
+    name="demo_queryagent",
     model=model,
-    instructions=f"你在 {WORKSPACE} 下工作，用 run_shell 看文件，用 write_file 写文件，改完 C++ 用 compile_cpp 编译，改完查询用 run_query 验证。",
+    instructions=f"你在 {WORKSPACE} 下工作，用 run_shell 看文件、跑 infra/build/db，用 write_file 写文件，改完 C++ 用 compile_cpp 重新编译；run_query 返回查询的标准答案和延迟 baseline，拿你 db 的输出与它对比验证。",
     tools=[run_shell, write_file, compile_cpp, run_query],
 )
+
+storageagent = Agent(
+    name="demo_storageagent",
+    model=model,
+    instructions=f"你在 {WORKSPACE} 下工作，用 run_shell 看文件, 用 write_file 写文件，改完 C++ 用 compile_cpp 重新编译。",
+    tools=[run_shell, write_file, compile_cpp, run_query],
+)
+
+
+def print_report(result):
+    print("\n===== 对话轨迹 =====")
+    for i, item in enumerate(result.new_items, 1):
+        print("\n" + "=" * 60)
+        print(f"第 {i} 项 | 类型: {item.type}")
+        print("=" * 60)
+        print(item)
+    print("\n===== 最终输出 =====")
+    print(result.final_output)
+    print("\n===== usage =====")
+    print(result.context_wrapper.usage)

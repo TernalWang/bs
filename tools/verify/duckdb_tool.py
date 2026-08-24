@@ -36,7 +36,8 @@ def run_query(line):
     sql = tpl
     for k, v in zip(names, toks[1:], strict=True):                # 每个名字只给一次值,同名全部替换
         sql = sql.replace(f"[{k}]", v)
-    result = _con.execute(sql)
+    _con.execute(sql).fetchall()                  # 第一次只跑不取,预热 page cache/memory
+    result = _con.execute(sql)                    # 第二次才计延迟,消除冷启动噪声
     rows = result.fetchall()
     cols = [d[0] for d in result.description]
     latency_ms = json.loads(PROFILE.read_text())["latency"] * 1000
