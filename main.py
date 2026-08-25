@@ -22,6 +22,7 @@ if __name__ == "__main__":
     session_storage = make_session("storage")
     session_query06 = make_session("query06")
     session_query14 = make_session("query14")
+    session_storage_todo = make_session("storage_todo")
 
     print("Copy infra into workspace")
     shutil.copytree(INFRA, WORKSPACE / "infra", dirs_exist_ok=False)
@@ -43,8 +44,7 @@ if __name__ == "__main__":
     print("Generate schema into workspace")
     (WORKSPACE / "duckdb_plans" / "schema.txt").write_text(dump_schema())
 
-    print("模型思考期间无输出是正常的；每出现一行 [tool] = 模型调了一次工具")
-
+    print("Generate query 06 storage plan")
     result = asyncio.run(Runner.run(rw_agent, input="""你的任务是分析给定的查询负载，为其中访问到的每张表设计一份有创造性的内存(in-memory)存储布局方案。
         你可以输出详细的自由格式文本，不仅探讨常规存储布局建议，也探讨非常规、新颖、甚至"疯狂"的存储设计。
         鼓励你加入额外的想法：新的分区策略、投机式的编码技术、实验性的列分组与数据组织方式。
@@ -56,15 +56,17 @@ if __name__ == "__main__":
         - 必须存储全部数据，且存储方式要能无损还原(flatten)回原始数据
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
+        - 不要去读任何其他的文件
 
         查询负载见文件：querys/q6.txt。
         DuckDB 对该查询生成的执行计划见文件：duckdb_plans/plan_q6.txt。
         表结构见文件：duckdb_plans/schema.txt。
 
         基于以上查询、执行计划和表结构，为被访问的表给出详细且有创造性的存储布局方案，写入文件 storage_plan06.txt。""",
-        session=session_query06))
+        session=session_query06, max_turns=75))
     print_report(result)
 
+    print("Generate query 14 storage plan")
     result = asyncio.run(Runner.run(rw_agent, input="""你的任务是分析给定的查询负载，为其中访问到的每张表设计一份有创造性的内存(in-memory)存储布局方案。
         你可以输出详细的自由格式文本，不仅探讨常规存储布局建议，也探讨非常规、新颖、甚至"疯狂"的存储设计。
         鼓励你加入额外的想法：新的分区策略、投机式的编码技术、实验性的列分组与数据组织方式。
@@ -76,16 +78,17 @@ if __name__ == "__main__":
         - 必须存储全部数据，且存储方式要能无损还原(flatten)回原始数据
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
+        - 不要去读任何其他的文件
 
         查询负载见文件：querys/q14.txt。
         DuckDB 对该查询生成的执行计划见文件：duckdb_plans/plan_q14.txt。
         表结构见文件：duckdb_plans/schema.txt。
 
         基于以上查询、执行计划和表结构，为被访问的表给出详细且有创造性的存储布局方案，写入文件 storage_plan14.txt。""",
-        session=session_query14))
+        session=session_query14, max_turns=75))
     print_report(result)
 
-
+    print("Generate overall storage plan")
     result = asyncio.run(Runner.run(rw_agent, input="""你的任务是综合全部材料，产出一份统一、有创造性的内存(in-memory)存储布局方案。
         阅读以下文件：
         - 两条查询的模板：querys/q6.txt、querys/q14.txt
@@ -101,11 +104,42 @@ if __name__ == "__main__":
         - 必须存储全部数据，且存储方式要能无损还原(flatten)回原始数据
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
+        - 不要去读任何其他的文件
 
         基于以上所有材料，写出最终的统一存储布局方案，写入文件 storage_plan.txt。""",
-        session=session_storage))
+        session=session_storage, max_turns=75))
     print_report(result)
 
-    # result = asyncio.run(Runner.run(rwcv_agent, input="", session=session_storage))
-    # result = asyncio.run(Runner.run(rwcv_agent, input="", session=session_query06))
-    # result = asyncio.run(Runner.run(rwcv_agent, input="", session=session_query14))
+    print("Delete seprate storage plan")
+    (WORKSPACE / "storage_plan06.txt").unlink(missing_ok=True)
+    (WORKSPACE / "storage_plan14.txt").unlink(missing_ok=True)
+
+    print("Generate TODO based on overall storage plan")
+    result = asyncio.run(Runner.run(rwcv_agent, input="""你是一名资深的数据库工程师和熟练的程序员。
+        用 C++ 编写一个专用的高性能数据库引擎，只针对一组预定义的查询做优化。
+        该引擎需要执行 querys/q6.txt 和 querys/q14.txt 中描述的 SQL 查询（共 2 条！！）。
+        数据类型和运算符可以硬编码进程序，以避免解释执行的开销。
+
+        首先，在文件 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中，把表从 ArrowTable 转换为自定义的数据结构（构建阶段）。
+        把它存储为一个 Database 结构体对象（预定义在 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中）。
+        使用高效的内存数据表示，让查询能够快速执行。存储方案写在文件 `storage_plan.txt` 里，它描述了如何把 parquet 数据存入内存以获得最优的查询执行性能。请按照这份存储方案来实现内存数据结构。
+
+        然后在这个数据结构上执行查询（执行阶段）。执行逻辑的接口已经预定义在 `infra/query/query_impl.cpp` 中。
+        查询接口作用于一个 QueryRequest 列表，每个请求对应一条要执行的查询。
+        每条查询的格式为：`<查询号> <查询参数>`（例如查询 Q42 带参数 "EUROPE" 和 "1995-01-01" 时："42 EUROPE 1995-01-01"）含空格的值必须加双引号（如 "REG AIR"）。
+        解析查询号和参数时，使用 `infra/include/args_parser.hpp` 中定义的 header-only C++ 解析器。
+        数据库引擎应按顺序执行参数列表中指定的所有查询。
+
+        把每条查询的输出写入单独的 csv 文件。
+        命名为 `result<RUN_NR>.csv`，其中 `<RUN_NR>` 是该查询在参数列表中的位置（从 1 开始计数）。
+        CSV 参数：(delimiter=',', escapechar='\\\\', quotechar='"', header=True)。
+
+        表结构见文件 duckdb_plans/schema.txt。
+
+        请为实现这个数据库引擎制定一份 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。现在先不要开始实现。
+        把这些步骤和查询写入一个文件，之后可以逐项标记为完成。
+        先不要执行这些步骤。""",
+        session=session_storage_todo, max_turns=100))
+    print_report(result)
+    # result = asyncio.run(Runner.run(rwcv_agent, input="", session=session_query06, max_turns=75))
+    # result = asyncio.run(Runner.run(rwcv_agent, input="", session=session_query14, max_turns=75))

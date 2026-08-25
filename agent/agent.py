@@ -14,13 +14,13 @@ client = AsyncOpenAI(
     api_key=os.environ["GLM_API_KEY"],
     base_url="https://api.z.ai/api/coding/paas/v4/",  # 结尾的 / 不能少
 )
-model = OpenAIChatCompletionsModel(model="glm-5.2", openai_client=client)
+model = OpenAIChatCompletionsModel(model="glm-5.3", openai_client=client)
 
 # ========== 核心 2：agent = 模型 + 指令 + 工具 ==========
 rwcv_agent = Agent(
     name="demo_queryagent",
     model=model,
-    instructions=f"你在 {WORKSPACE} 下工作，用 run_shell 看文件、跑 infra/build/db，用 write_file 写文件，改完 C++ 用 compile_cpp 重新编译；run_query 返回查询的标准答案和延迟 baseline，拿你 db 的输出与它对比验证。",
+    instructions=f"你在 {WORKSPACE} 下工作，run_shell 可以看文件、跑 infra/build/db 等，write_file 可以写文件，compile_cpp 可以把infra编译成db这个binary，run_query可以返回查询的标准答案和延迟的baseline，拿你 db 的输出与它对比验证。",
     tools=[run_shell, write_file, compile_cpp, run_query],
 )
 
