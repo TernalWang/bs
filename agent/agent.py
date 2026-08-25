@@ -17,18 +17,18 @@ client = AsyncOpenAI(
 model = OpenAIChatCompletionsModel(model="glm-5.2", openai_client=client)
 
 # ========== 核心 2：agent = 模型 + 指令 + 工具 ==========
-queryagent = Agent(
+rwcv_agent = Agent(
     name="demo_queryagent",
     model=model,
     instructions=f"你在 {WORKSPACE} 下工作，用 run_shell 看文件、跑 infra/build/db，用 write_file 写文件，改完 C++ 用 compile_cpp 重新编译；run_query 返回查询的标准答案和延迟 baseline，拿你 db 的输出与它对比验证。",
     tools=[run_shell, write_file, compile_cpp, run_query],
 )
 
-storageagent = Agent(
+rw_agent = Agent(
     name="demo_storageagent",
     model=model,
-    instructions=f"你在 {WORKSPACE} 下工作，用 run_shell 看文件, 用 write_file 写文件，改完 C++ 用 compile_cpp 重新编译。",
-    tools=[run_shell, write_file, compile_cpp, run_query],
+    instructions=f"你在 {WORKSPACE} 下工作，用 run_shell 看文件, 用 write_file 写文件。",
+    tools=[run_shell, write_file],
 )
 
 

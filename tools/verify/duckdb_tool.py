@@ -29,6 +29,17 @@ def start():
     return con
 
 
+def dump_schema():
+    con = duckdb.connect()                        # 独立连接:只读 parquet footer,不依赖 start() 载表
+    ddl = []
+    for t in TABLES:
+        rows = con.execute(f"describe select * from read_parquet('{SF1}/{t}.parquet')").fetchall()
+        cols = ",\n".join(f"    {c[0]:<16}{c[1]}" for c in rows)
+        ddl.append(f"create table {t}\n(\n{cols}\n);")
+    con.close()
+    return "\n\n".join(ddl) + "\n"
+
+
 def run_query(line):
     toks = shlex.split(line)                     # '1 "90"' → ['1','90']; 引号内空格不劈
     tpl = (QUERY_DIR / f"q{toks[0]}.txt").read_text()
