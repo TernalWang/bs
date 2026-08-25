@@ -1,6 +1,6 @@
-#include "builder/builder_impl.hpp"
+#include "builder_impl.hpp"
 #include "loader.hpp"
-#include "query/query_impl.hpp"
+#include "query_impl.hpp"
 
 #include <iostream>
 #include <string>
