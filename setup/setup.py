@@ -20,7 +20,7 @@ def gen_args_parser(query_dir: Path) -> str:
     return "\n\n".join(parts) + "\n"
 
 
-def setup_workspace(queries: list[int], infra: Path, tpch_sf1: Path, tpch_query: Path, human_input: Path) -> None:
+def setup_workspace(queries: list[int], infra: Path, sf1: Path, query: Path, human_input: Path) -> None:
     print("Create workspace")
     WORKSPACE.mkdir(exist_ok=False)
 
@@ -30,11 +30,11 @@ def setup_workspace(queries: list[int], infra: Path, tpch_sf1: Path, tpch_query:
     print("Copy infra into workspace")
     shutil.copytree(infra, WORKSPACE / "infra", dirs_exist_ok=False)
 
-    print("Copy tpch sf1 into workspace")
-    shutil.copytree(tpch_sf1, WORKSPACE / "parquets" / "sf1", dirs_exist_ok=False)
+    print("Copy sf1 into workspace")
+    shutil.copytree(sf1, WORKSPACE / "parquets" / "sf1", dirs_exist_ok=False)
 
     print("Copy querys into workspace")
-    shutil.copytree(tpch_query, WORKSPACE / "querys", dirs_exist_ok=False)
+    shutil.copytree(query, WORKSPACE / "querys", dirs_exist_ok=False)
 
     print("Generate duckdb plans into workspace")
     (WORKSPACE / "duckdb_plans").mkdir()

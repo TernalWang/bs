@@ -10,20 +10,21 @@ from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import start as start_duckdb
 
 INFRA = Path(__file__).parent / "infra"
-TPCH = Path(__file__).parent / "human_ref" / "tpch"
-TPCH_SF1 = TPCH / "parquets" / "sf1"
-TPCH_QUERY = TPCH / "querys"
-HUMAN_INPUT = TPCH / "input"
-TABLES = ["region", "nation", "customer", "supplier", "part", "partsupp", "orders", "lineitem"]
+BENCHMARK = Path(__file__).parent / "human_ref" / "agentlogs"
+SF1 = BENCHMARK / "parquets" / "sf1"
+QUERY = BENCHMARK / "querys"
+HUMAN_INPUT = BENCHMARK / "input"
+# TABLES = ["region", "nation", "customer", "supplier", "part", "partsupp", "orders", "lineitem"]
+TABLES = ["agent_observations"]
 QUERIES = [4, 5]
 
 
 if __name__ == "__main__":
     print("Start duckdb")
-    start_duckdb(TPCH_SF1, TPCH_QUERY, TABLES)
+    start_duckdb(SF1, QUERY, TABLES)
 
     print("Setup workspace")
-    setup_workspace(QUERIES, INFRA, TPCH_SF1, TPCH_QUERY, HUMAN_INPUT)
+    setup_workspace(QUERIES, INFRA, SF1, QUERY, HUMAN_INPUT)
 
     for n in QUERIES:
         print(f"Generate query {n} storage plan")

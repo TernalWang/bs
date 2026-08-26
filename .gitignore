@@ -3,3 +3,4 @@
 __pycache__/
 workspace/
 human_ref/tpch/parquets/
+human_ref/agentlogs/parquets/
