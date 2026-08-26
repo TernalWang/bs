@@ -24,7 +24,6 @@ def make_rwcv_agent(instructions: str = "") -> Agent:
         tools=[run_shell, write_file, compile_cpp, run_query],
     )
 
-
 def make_rw_agent(instructions: str = "") -> Agent:
     return Agent(
         name="rw_agent",
@@ -32,7 +31,6 @@ def make_rw_agent(instructions: str = "") -> Agent:
         instructions=instructions,
         tools=[run_shell, write_file],
     )
-
 
 def print_report(result):
     print("\n===== 对话轨迹 =====")

@@ -9,4 +9,5 @@ def write_file(path: str, content: str) -> str:
     if not (target.is_relative_to(WORKSPACE) or target.is_relative_to(Path("/tmp"))):
         return f"拒绝写入 {target}：只允许 workspace 和 /tmp"
     target.write_text(content)
+    print(content)
     return "ok"
