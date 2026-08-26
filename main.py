@@ -10,9 +10,11 @@ from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import run_query_json, dump_schema, start as start_duckdb
 
 INFRA = Path(__file__).parent / "infra"
-TPCH_SF1 = Path(__file__).parent / "tpch_parquet" / "sf1"
-TPCH_QUERY = Path(__file__).parent / "tpch_query"
-HUMAN_INPUT = Path(__file__).parent / "human_ref" / "input"
+TPCH = Path(__file__).parent / "human_ref" / "tpch"
+TPCH_SF1 = TPCH / "parquets" / "sf1"
+TPCH_QUERY = TPCH / "querys"
+HUMAN_INPUT = TPCH / "input"
+TABLES = ["region", "nation", "customer", "supplier", "part", "partsupp", "orders", "lineitem"]
 
 RW_INSTRUCTIONS = f"你在 {WORKSPACE} 下工作，用 run_shell 看文件, 用 write_file 写文件。"
 RWCV_INSTRUCTIONS = (
@@ -49,11 +51,11 @@ if __name__ == "__main__":
     print("Copy tpch sf1 into workspace")
     shutil.copytree(TPCH_SF1, WORKSPACE / "parquets" / "sf1", dirs_exist_ok=False)
 
-    print("Copy tpch_query into workspace")
+    print("Copy querys into workspace")
     shutil.copytree(TPCH_QUERY, WORKSPACE / "querys", dirs_exist_ok=False)
 
     print("Start duckdb")
-    start_duckdb()
+    start_duckdb(TPCH_SF1, TPCH_QUERY, TABLES)
 
     print("Generate duckdb plans into workspace")
     (WORKSPACE / "duckdb_plans").mkdir()

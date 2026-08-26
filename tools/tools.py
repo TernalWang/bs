@@ -30,7 +30,6 @@ def compile_cpp() -> str:
 @function_tool
 def run_query(line: str) -> str:
     """执行基准查询(共22条)。使用前必须先读 querys/q<N>.txt 模板，查看其中的 [NAME] 占位符及上下文确定各参数取值。line 格式: '<N> <参数1> <参数2> ...'，按占位符首次出现的顺序以空格分隔填入；同名占位符只需填一次（自动替换所有出现处）；模板已含所需引号，传纯值即可。返回延迟(ms)、列名和结果行。"""
-    duckdb_tool.start()
     cols, rows, latency_ms = duckdb_tool.run_query(line)
     header = "\t".join(cols)
     body = "\n".join("\t".join(map(str, r)) for r in rows)

@@ -2,4 +2,4 @@
 !.gitignore
 __pycache__/
 workspace/
-tpch_parquet/
+human_ref/tpch/parquets/
