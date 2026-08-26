@@ -81,10 +81,18 @@ if __name__ == "__main__" and sys.argv[1:2] == ["--exec"]:
     os.execvp("bash", ["bash", "-c", sys.argv[2]])
 
 
+MAX_OUT = 100_000  # 单条输出超过它，下一轮就会把整个 prompt 撑爆（API 400），必须拦在 return 之前
+
+
 def run_shell(command: str) -> str:
     print(f"[tool] run_shell: {command}")
     p = subprocess.run(
         [sys.executable, str(Path(__file__).resolve()), "--exec", command],
         cwd=WORKSPACE, capture_output=True, text=True, timeout=120,
     )
-    return p.stdout + p.stderr
+    out = p.stdout + p.stderr
+    if len(out) > MAX_OUT:  # 只告知事实和原则，具体怎么做留给模型自己想
+        return (f"该命令输出共 {len(out):,} 字符，过大已丢弃，未进入对话。"
+                "除非真的非常需要，不要再获取这份数据；"
+                "确实需要时最推荐用逻辑推理只取得真正需要的那部分信息, 分批拿取非常浪费token请尝试在不看的情况下继续完成任务")
+    return out

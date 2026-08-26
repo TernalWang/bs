@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from agents import Runner
 
-from agent.agent import print_report, rwcv_agent, rw_agent
+from agent.agent import make_rw_agent, make_rwcv_agent, print_report
 from sessions.sessions import make_session
 from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import run_query_json, dump_schema, start as start_duckdb
@@ -14,15 +14,34 @@ TPCH_SF1 = Path(__file__).parent / "tpch_parquet" / "sf1"
 TPCH_QUERY = Path(__file__).parent / "tpch_query"
 HUMAN_INPUT = Path(__file__).parent / "human_ref" / "input"
 
+RW_INSTRUCTIONS = f"你在 {WORKSPACE} 下工作，用 run_shell 看文件, 用 write_file 写文件。"
+RWCV_INSTRUCTIONS = (
+    f"你在 {WORKSPACE} 下工作，"
+    "run_shell 可以看文件、跑 infra/build/db 等，"
+    "write_file 可以写文件，"
+    "compile_cpp 可以把infra编译成db这个binary，"
+    "run_query可以返回查询的标准答案和延迟的baseline，拿你 db 的输出与它对比验证。"
+)
+
+def todo_instructions(todo_file: str) -> str:
+    return (
+        f"你在 {WORKSPACE} 下按照{todo_file}完成工作"
+        "每完成一项就在文件中✅标记一下别的TODO.md和你无关！。"
+        "run_shell 可以看文件、跑 infra/build/db、"
+        "小修改（替换字符串、改几行代码、勾选 TODO）用 sed/awk 完成。"
+        "write_file 可以写文件。"
+        "compile_cpp 可以把infra编译成db这个binary。"
+        "run_query可以返回查询的标准答案和延迟的baseline"
+        "拿你 db 的输出与它对比验证。"
+    )
+
+
 if __name__ == "__main__":
     print("Create workspace")
     WORKSPACE.mkdir(exist_ok=False)
 
     print("Create sessions.db")
-    session_storage = make_session("storage")
-    session_query06 = make_session("query06")
-    session_query14 = make_session("query14")
-    session_storage_todo = make_session("storage_todo")
+    make_session("empty")
 
     print("Copy infra into workspace")
     shutil.copytree(INFRA, WORKSPACE / "infra", dirs_exist_ok=False)
@@ -45,7 +64,7 @@ if __name__ == "__main__":
     (WORKSPACE / "duckdb_plans" / "schema.txt").write_text(dump_schema())
 
     print("Generate query 06 storage plan")
-    result = asyncio.run(Runner.run(rw_agent, input="""你的任务是分析给定的查询负载，为其中访问到的每张表设计一份有创造性的内存(in-memory)存储布局方案。
+    result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input="""你的任务是分析给定的查询负载，为其中访问到的每张表设计一份有创造性的内存(in-memory)存储布局方案。
         你可以输出详细的自由格式文本，不仅探讨常规存储布局建议，也探讨非常规、新颖、甚至"疯狂"的存储设计。
         鼓励你加入额外的想法：新的分区策略、投机式的编码技术、实验性的列分组与数据组织方式。
         对每张被访问的表，大胆展开：混合布局、SoA/AoS(数组结构/结构数组)的各种变体、新颖的列编码、自适应分区等。
@@ -63,11 +82,11 @@ if __name__ == "__main__":
         表结构见文件：duckdb_plans/schema.txt。
 
         基于以上查询、执行计划和表结构，为被访问的表给出详细且有创造性的存储布局方案，写入文件 storage_plan06.txt。""",
-        session=session_query06, max_turns=75))
+        session=make_session("plan_q6"), max_turns=75))
     print_report(result)
 
     print("Generate query 14 storage plan")
-    result = asyncio.run(Runner.run(rw_agent, input="""你的任务是分析给定的查询负载，为其中访问到的每张表设计一份有创造性的内存(in-memory)存储布局方案。
+    result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input="""你的任务是分析给定的查询负载，为其中访问到的每张表设计一份有创造性的内存(in-memory)存储布局方案。
         你可以输出详细的自由格式文本，不仅探讨常规存储布局建议，也探讨非常规、新颖、甚至"疯狂"的存储设计。
         鼓励你加入额外的想法：新的分区策略、投机式的编码技术、实验性的列分组与数据组织方式。
         对每张被访问的表，大胆展开：混合布局、SoA/AoS(数组结构/结构数组)的各种变体、新颖的列编码、自适应分区等。
@@ -85,11 +104,11 @@ if __name__ == "__main__":
         表结构见文件：duckdb_plans/schema.txt。
 
         基于以上查询、执行计划和表结构，为被访问的表给出详细且有创造性的存储布局方案，写入文件 storage_plan14.txt。""",
-        session=session_query14, max_turns=75))
+        session=make_session("plan_q14"), max_turns=75))
     print_report(result)
 
     print("Generate overall storage plan")
-    result = asyncio.run(Runner.run(rw_agent, input="""你的任务是综合全部材料，产出一份统一、有创造性的内存(in-memory)存储布局方案。
+    result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input="""你的任务是综合全部材料，产出一份统一、有创造性的内存(in-memory)存储布局方案。
         阅读以下文件：
         - 两条查询的模板：querys/q6.txt、querys/q14.txt
         - DuckDB 生成的执行计划：duckdb_plans/plan_q6.txt、duckdb_plans/plan_q14.txt
@@ -107,7 +126,7 @@ if __name__ == "__main__":
         - 不要去读任何其他的文件
 
         基于以上所有材料，写出最终的统一存储布局方案，写入文件 storage_plan.txt。""",
-        session=session_storage, max_turns=75))
+        session=make_session("storage"), max_turns=75))
     print_report(result)
 
     print("Delete seprate storage plan")
@@ -115,7 +134,7 @@ if __name__ == "__main__":
     (WORKSPACE / "storage_plan14.txt").unlink(missing_ok=True)
 
     print("Generate TODO based on overall storage plan")
-    result = asyncio.run(Runner.run(rwcv_agent, input="""你是一名资深的数据库工程师和熟练的程序员。
+    result = asyncio.run(Runner.run(make_rwcv_agent(RWCV_INSTRUCTIONS), input="""你是一名资深的数据库工程师和熟练的程序员。
         用 C++ 编写一个专用的高性能数据库引擎，只针对一组预定义的查询做优化。
         该引擎需要执行 querys/q6.txt 和 querys/q14.txt 中描述的 SQL 查询（共 2 条！！）。
         数据类型和运算符可以硬编码进程序，以避免解释执行的开销。
@@ -136,10 +155,34 @@ if __name__ == "__main__":
 
         表结构见文件 duckdb_plans/schema.txt。
 
-        请为实现这个数据库引擎制定一份 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。现在先不要开始实现。
-        把这些步骤和查询写入一个文件，之后可以逐项标记为完成。
-        先不要执行这些步骤。""",
-        session=session_storage_todo, max_turns=100))
+        请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
+        我之后会用三个 agent 按顺序执行，所以把计划拆成三个文件：
+        - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：实现后 compile_cpp 编译通过即可。
+        - TODO_query06.md：Q6 执行阶段（query_impl.cpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比。
+        - TODO_query14.md：Q14 执行阶段（query_impl.cpp），验收标准同 Q6。
+        三个文件即执行顺序；每个文件里的步骤完成后逐项标记。现在先不要开始实现，也先不要执行这些步骤。""",
+        session=make_session("storage_todo"), max_turns=100))
     print_report(result)
-    # result = asyncio.run(Runner.run(rwcv_agent, input="", session=session_query06, max_turns=75))
-    # result = asyncio.run(Runner.run(rwcv_agent, input="", session=session_query14, max_turns=75))
+
+    print("start coding")
+    result = asyncio.run(Runner.run(
+        make_rwcv_agent(todo_instructions("TODO_storage.md")),
+        input="开始完成storage layer",
+        session=make_session("code_storage"),
+        max_turns=700,
+    ))
+    print_report(result)
+    result = asyncio.run(Runner.run(
+        make_rwcv_agent(todo_instructions("TODO_query06.md")),
+        input="开始完成query 6",
+        session=make_session("code_q6"),
+        max_turns=700,
+    ))
+    print_report(result)
+    result = asyncio.run(Runner.run(
+        make_rwcv_agent(todo_instructions("TODO_query14.md")),
+        input="开始完成query 14",
+        session=make_session("code_q14"),
+        max_turns=700,
+    ))
+    print_report(result)
