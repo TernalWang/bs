@@ -1,0 +1,21 @@
+SELECT
+  event_time,
+  trace_id,
+  observation_id,
+  type,
+  status,
+  tool_name,
+  output
+FROM agent_observations
+WHERE tenant = 'tenant_001'
+  AND app = 'app_001'
+  AND type IN ('GENERATION', 'TOOL', 'EVENT')
+  AND (
+    lower(coalesce(input, '')) LIKE '%deployment%'
+    OR lower(coalesce(output, '')) LIKE '%deployment%'
+    OR lower(coalesce(input, '')) LIKE '%rollback%'
+    OR lower(coalesce(output, '')) LIKE '%rollback%'
+    OR lower(coalesce(output, '')) LIKE '%transient%'
+  )
+ORDER BY event_time DESC, trace_id DESC, observation_id DESC
+LIMIT 50;

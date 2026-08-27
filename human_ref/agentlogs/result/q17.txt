@@ -1,0 +1,2 @@
+trace_id,observation_id,seq_no,type,status,request_key,workflow_variant
+trace_000001_f1dff375,obs_trace_000001_f1dff375_000001_c1e4ef51,1,TOKEN_ESTIMATE,ok,req_000001_8cace09f,long_context_replay
