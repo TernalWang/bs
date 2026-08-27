@@ -62,6 +62,7 @@ def overall_storage_prompt(queries: list[int]) -> str:
         基于以上所有材料，写出最终的统一存储布局方案，写入文件 storage_plan.txt。"""
 
 def todo_prompt(queries: list[int]) -> str:
+    query_todos = "\n        ".join(f"- TODO_query{x}.md：Q{x} 执行阶段（query_impl.cpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比。" for x in queries)
     return f"""你是一名资深的数据库工程师和熟练的程序员。
         用 C++ 编写一个专用的高性能数据库引擎，只针对一组预定义的查询做优化。
         该引擎需要执行 {"、".join(f"querys/q{x}.txt" for x in queries)} 中描述的 SQL 查询（共 {len(queries)} 条！！）。
@@ -86,24 +87,13 @@ def todo_prompt(queries: list[int]) -> str:
         请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
         我之后会按顺序用 agent 逐个执行，所以把计划拆成下面这些文件：
         - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：实现后 compile_cpp 编译通过即可。
-        {"\n        ".join(f"- TODO_query{x}.md：Q{x} 执行阶段（query_impl.cpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比。" for x in queries)}
+        {query_todos}
         以上文件即执行顺序；每个文件里的步骤完成后逐项标记。现在先不要开始实现，也先不要执行这些步骤。"""
 
 STORAGE_CODE_INPUT = "开始完成storage layer"
 
 def query_code_input(n: int) -> str:
     return f"开始完成query {n}"
-
-ARGS_PARSER_HEAD = """#pragma once
-
-#include <iomanip>
-#include <string>
-#include <sstream>
-
-struct QueryRequest {
-    std::string id;
-    std::string line;
-};"""
 
 ARGS_PARSER_READ = """    if (!(iss >> std::quoted(args.%(k)s))) {
         throw std::runtime_error("Q%(n)s: failed to parse %(k)s");
@@ -124,3 +114,9 @@ inline Q%(n)sArgs parse_q%(n)s(const QueryRequest& request) {
 
 %(reads)s    return args;
 }"""
+
+LOADER_FIELD = """    ArrowTable %(table)s;
+"""
+
+LOADER_LOAD = """    tables->%(table)s = ReadParquetTable(path + "%(table)s.parquet");
+"""

@@ -5,7 +5,7 @@ from agents import Runner
 from agent.agent import make_rw_agent, make_rwcv_agent, print_report
 from human_ref.prompt.prompts import RWCV_INSTRUCTIONS, RW_INSTRUCTIONS, STORAGE_CODE_INPUT, overall_storage_prompt, query_code_input, storage_plan_prompt, todo_instructions, todo_prompt
 from sessions.sessions import make_session
-from setup.setup import setup_workspace
+from setup.setup import setup_workspace, gen_tables
 from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import start as start_duckdb
 
@@ -14,8 +14,7 @@ BENCHMARK = Path(__file__).parent / "human_ref" / "agentlogs"
 SF1 = BENCHMARK / "parquets" / "sf1"
 QUERY = BENCHMARK / "querys"
 HUMAN_INPUT = BENCHMARK / "input"
-# TABLES = ["region", "nation", "customer", "supplier", "part", "partsupp", "orders", "lineitem"]
-TABLES = ["agent_observations"]
+TABLES = gen_tables(SF1)
 QUERIES = [4, 5]
 
 
@@ -24,7 +23,7 @@ if __name__ == "__main__":
     start_duckdb(SF1, QUERY, TABLES)
 
     print("Setup workspace")
-    setup_workspace(QUERIES, INFRA, SF1, QUERY, HUMAN_INPUT)
+    setup_workspace(QUERIES, INFRA, SF1, QUERY, HUMAN_INPUT, TABLES)
 
     for n in QUERIES:
         print(f"Generate query {n} storage plan")
