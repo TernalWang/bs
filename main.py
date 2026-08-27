@@ -15,7 +15,7 @@ SF1 = BENCHMARK / "parquets" / "sf1"
 QUERY = BENCHMARK / "querys"
 HUMAN_INPUT = BENCHMARK / "input"
 TABLES = gen_tables(SF1)
-QUERIES = [4, 5]
+QUERIES = [12, 19]
 
 
 if __name__ == "__main__":
