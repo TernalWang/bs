@@ -1,2 +1,0 @@
-observations,traces,last_event_time
-8846,4358,2027-03-20 13:32:03

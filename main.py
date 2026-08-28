@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     print("Generate overall storage plan")
     result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=overall_storage_prompt(QUERIES),
-        session=make_session("storage"), max_turns=75))
+        session=make_session("storage"), max_turns=700))
     print_report(result)
 
     print("Archive and delete seprate storage plan")
