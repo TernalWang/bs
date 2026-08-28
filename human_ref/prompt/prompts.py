@@ -80,12 +80,13 @@ def todo_prompt(queries: list[int]) -> str:
 
         把每条查询的输出写入单独的 csv 文件。
         命名为 `result<RUN_NR>.csv`，其中 `<RUN_NR>` 是该查询在参数列表中的位置（从 1 开始计数）。
-        CSV 参数：(delimiter=',', escapechar='\\\\', quotechar='"', header=True)。
+        CSV 参数：(delimiter=',', quotechar='"', escapechar='\\\\', header=True, quoting=QUOTE_MINIMAL, doublequote=True)，
+        即：仅当字段含逗号/引号/换行时才用引号包裹；字段内的引号写成两个（""）；字段内的反斜杠写成 \\\\。与run_query标准答案CSV完全同格式。
 
         表结构见文件 duckdb_plans/schema.txt。
 
         请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
-        我之后会按顺序用 agent 逐个执行，所以把计划拆成下面这些文件：
+        我之后会按顺序用不同的 agent 逐个执行，共 {len(queries) + 1} 个 agent（1 个构建阶段 + {len(queries)} 个查询阶段），所以把计划拆成对应的 {len(queries) + 1} 个文件：
         - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：实现后 compile_cpp 编译通过即可。
         {query_todos}
         以上文件即执行顺序；每个文件里的步骤完成后逐项标记。现在先不要开始实现，也先不要执行这些步骤。"""

@@ -35,7 +35,10 @@ def compile_cpp() -> str:
 
 @function_tool
 def run_query(line: str) -> str:
-    """执行基准查询(共22条)。使用前必须先读 querys/q<N>.txt 模板，查看其中的 [NAME] 占位符及上下文确定各参数取值。line 格式: '<N> <参数1> <参数2> ...'，按占位符首次出现的顺序以空格分隔填入；同名占位符只需填一次（自动替换所有出现处）；模板已含所需引号，传纯值即可。返回延迟(ms)和标准答案CSV的路径；CSV约定与引擎输出一致(delimiter=','、escapechar='\\'、quotechar='"'、header)，拿你引擎的csv与它核验：先抽查，全部一致再做整文件对比。"""
+    """执行基准查询。使用前参考 querys/q<N>.txt 模板，查看其中的 [NAME]占位符及上下文确定各参数取值。
+    line 格式: '<N> <参数1> <参数2> ...'，按占位符首次出现的顺序以空格分隔填入；同名占位符只需填一次（自动替换所有出现处）；模板已含所需引号，传纯值即可。
+    返回延迟(ms)和标准答案CSV的路径；CSV约定与引擎输出一致(delimiter=','、escapechar='\\\\'、quotechar='"'、header)。
+    拿你引擎的csv与它核验：先抽查，全部一致再做整文件对比；DOUBLE 浮点列（schema 为 DOUBLE 的列或 avg() 等浮点计算）允许末位舍入级差异，但须严谨：用脚本量化确认误差确属舍入量级，其余列必须完全一致。"""
     cols, rows, latency_ms = duckdb_tool.run_query(line)
     EXPECTED_DIR.mkdir(parents=True, exist_ok=True)
     path = EXPECTED_DIR / f"{time.time_ns()}.csv"
