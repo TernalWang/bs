@@ -12,7 +12,6 @@ def start(sf1, query_dir, tables):
     global _con, SF1, QUERY_DIR, TABLES
     SF1, QUERY_DIR, TABLES = sf1, query_dir, tables
     _con = duckdb.connect(":memory:")
-    _con.execute("PRAGMA threads=1")               # 载表+查询全单核:first-touch 集中,NUMA 友好
     for t in TABLES:
         _con.execute(f"create table {t} as select * from read_parquet('{SF1}/{t}.parquet')")
     _con.execute("PRAGMA enable_profiling='json'")
