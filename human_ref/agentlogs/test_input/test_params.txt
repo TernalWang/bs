@@ -1,0 +1,54 @@
+1 2026-03-17 2027-03-20 tenant_005
+1 2026-03-17 2027-03-20 tenant_018
+1 2026-06-18 2026-06-18 tenant_005
+1 2027-03-20 2027-03-20 tenant_005
+1 2026-03-17 2027-03-20 tenant_999
+1 2020-01-01 2020-12-31 tenant_005
+1 2027-03-20 2026-03-17 tenant_005
+2 2026-03-17 2027-03-20
+2 2026-06-18 2026-06-18
+2 2027-03-20 2027-03-20
+2 2020-01-01 2020-12-31
+3 trace_075759_5f5a9fc5
+3 trace_077403_1fa830a4
+3 trace_033053_6ef70596
+3 trace_999999_00000000
+4 trace_075759_5f5a9fc5
+4 trace_077403_1fa830a4
+4 trace_033053_6ef70596
+4 trace_999999_00000000
+5 tenant_005 app_002
+5 tenant_005 app_020
+5 tenant_006 app_002
+5 tenant_999 app_999
+6
+7
+8 tenant_005
+8 tenant_018
+8 tenant_999
+9
+10
+11 tenant_005 app_002
+11 tenant_005 app_020
+11 tenant_999 app_999
+12
+13 2026-03-17 2027-03-20 tenant_005
+13 2026-03-17 2027-03-20 tenant_018
+13 2026-06-18 2026-06-18 tenant_005
+13 2026-03-17 2027-03-20 tenant_999
+14 tenant_005 app_002
+14 tenant_005 app_020
+14 tenant_999 app_999
+15 tenant_005
+15 tenant_018
+15 tenant_999
+16 tenant_005 shadow pro cluster_a
+16 tenant_005 canary pro cluster_c
+16 tenant_001 stable pro cluster_d
+16 tenant_005 ring_nope tier_nope clus_nope
+17 tenant_005 req_148799_ebe9d35b long_context_replay
+17 tenant_005 req_187453_5f1850bd long_context_replay
+17 tenant_005 req_999999_00000000 variant_nope
+18
+19
+20

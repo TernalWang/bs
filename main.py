@@ -10,12 +10,12 @@ from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import start as start_duckdb
 
 INFRA = Path(__file__).parent / "infra"
-BENCHMARK = Path(__file__).parent / "human_ref" / "agentlogs"
+BENCHMARK = Path(__file__).parent / "human_ref" / "tpch"
 SF1 = BENCHMARK / "parquets" / "sf1"
 QUERY = BENCHMARK / "querys"
 HUMAN_INPUT = BENCHMARK / "input"
 TABLES = gen_tables(SF1)
-QUERIES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+QUERIES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22]
 
 
 if __name__ == "__main__":

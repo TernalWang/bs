@@ -1,0 +1,259 @@
+# q1-q22 验证用参数清单(可直接喂给 tools/verify/duckdb_tool.py 的 run_query)
+# 格式与 human_ref/tpch/input/qN.txt 相同: <q号> "参数1" "参数2" ...
+# 参数顺序 = 模板中首次出现顺序, 个数必须严格匹配(run_query 用 strict=True)
+# 以 # 开头的行为注释, 逐行喂给 run_query 前请过滤掉
+# 重点覆盖: 空结果 / 单行 NULL / 0 行 / 日期月末与闰年归一化 / LIKE 大小写 / 边界值
+
+# ---- q1 (DELTA): interval 减法边界 ----
+# 基准
+1 "90"
+# 全量: l_shipdate 上界恰为 1998-12-01, 全部行命中
+1 "0"
+# 只排除最后一天
+1 "1"
+# TPC-H 上界
+1 "120"
+# 空结果: GROUP BY 空输入, 输出 0 行
+1 "100000"
+
+# ---- q2 (SIZE, TYPE, REGION): like '%TYPE' 前缀通配 ----
+# 基准
+2 "27" "BRASS" "AFRICA"
+# TYPE 空串 -> like '%' 全匹配; SIZE 上边界 50
+2 "50" "" "ASIA"
+# SIZE 下边界 1; TYPE 给完整值(等值语义)
+2 "1" "STANDARD BURNISHED NICKEL" "EUROPE"
+# TYPE 无匹配 -> 空结果
+2 "15" "ZZZ" "MIDDLE EAST"
+# SIZE 超出 1~50 -> 空结果
+2 "60" "BRASS" "AMERICA"
+
+# ---- q3 (SEGMENT, DATE): 双向日期过滤 ----
+# 基准
+3 "FURNITURE" "1995-03-06"
+# o_orderdate < 数据最小值 -> 空结果
+3 "BUILDING" "1992-01-01"
+# 全部订单通过下界(最小值+1天)
+3 "MACHINERY" "1998-08-03"
+# l_shipdate > 恰好卡掉全部(最大 1998-12-01) -> 空结果
+3 "AUTOMOBILE" "1998-12-02"
+# 不存在的 segment -> 空结果
+3 "FOO" "1995-03-06"
+
+# ---- q4 (DATE): +3 month 窗口 ----
+# 基准
+4 "1993-10-01"
+# >= 正好取数据最小值(含边界)
+4 "1992-01-01"
+# 月末归一化: 1993-01-31 + 3mo -> 1993-05-01 (04-31 不存在)
+4 "1993-01-31"
+# 只含最后一天订单
+4 "1998-08-02"
+# 窗口完全越过数据尾部 -> 空结果
+4 "1998-10-01"
+
+# ---- q5 (REGION, DATE): +1 year 窗口 ----
+# 基准
+5 "EUROPE" "1995-01-01"
+# 换 region
+5 "AMERICA" "1994-01-01"
+# 窗口截在数据尾部(不完整年)
+5 "ASIA" "1998-01-01"
+# 闰日 + 1 year 归一化
+5 "MIDDLE EAST" "1996-02-29"
+# 数据下边界
+5 "AFRICA" "1992-01-01"
+
+# ---- q6 (DATE, DISCOUNT, QUANTITY): between ±0.01 窗口 ----
+# 基准
+6 "1995-01-01" "0.06" "25"
+# discount 上边界 0.10(窗口单侧) + qty 上边界 50
+6 "1994-01-01" "0.10" "50"
+# 双下边界: discount 0.00 + qty 只有 1.00 命中
+6 "1993-01-01" "0.00" "1"
+# qty 超上界, 该条件不过滤任何行
+6 "1997-01-01" "0.05" "51"
+# 日期越界 -> sum 为 NULL 的单行输出(区分 NULL 与 0)
+6 "1999-01-01" "0.06" "25"
+
+# ---- q7 (NATION1, NATION2): 对称 OR ----
+# 基准
+7 "KENYA" "UNITED STATES"
+# 交换后结果必须与上一行完全一致(对称性/替换顺序)
+7 "UNITED STATES" "KENYA"
+# 两参数相同, OR 两支退化为一支
+7 "FRANCE" "FRANCE"
+# 不存在国名 -> 空结果
+7 "ATLANTIS" "VIETNAM"
+
+# ---- q8 (NATION, REGION, TYPE): 等值 TYPE + 分子分母 ----
+# 基准
+8 "UNITED STATES" "AMERICA" "MEDIUM BRUSHED COPPER"
+# NATION 不在 REGION -> 分子恒 0 -> mkt_share = 0(零分子)
+8 "FRANCE" "AMERICA" "SMALL PLATED COPPER"
+# 另一组正常值
+8 "JAPAN" "ASIA" "LARGE ANODIZED STEEL"
+# TYPE 不存在 -> 空结果
+8 "UNITED STATES" "AMERICA" "NO SUCH TYPE"
+
+# ---- q9 (COLOR): p_name like '%COLOR%' 包含匹配 ----
+# 基准
+9 "lime"
+# 单字符, 命中大量(大结果)
+9 "e"
+# 空串 -> like '%%' 全部 part(最大结果)
+9 ""
+# 大写: LIKE 区分大小写 -> 空结果(专测 db 的 LIKE 大小写行为)
+9 "LIME"
+# 空结果
+9 "zzz"
+
+# ---- q10 (DATE): +3 month 窗口 ----
+# 基准
+10 "1994-07-01"
+# 月末 + 3mo 归一化 -> 1995-05-01
+10 "1995-01-31"
+# 只含最后一天
+10 "1998-08-02"
+# 空结果
+10 "1998-10-01"
+# 数据下边界
+10 "1992-01-01"
+
+# ---- q11 (NATION, FRACTION): having 阈值 ----
+# 基准(带尾零的 decimal 字面量, 顺带测数值解析)
+11 "FRANCE" "0.0001000000"
+# 阈值 0, 全部通过(大结果)
+11 "GERMANY" "0"
+# > sum*1 恒假 -> 空结果
+11 "VIETNAM" "1"
+# 中间阈值
+11 "KENYA" "0.001"
+
+# ---- q12 (SHIPMODE1, SHIPMODE2, DATE): IN + 一年窗口 ----
+# 基准
+12 "SHIP" "TRUCK" "1996-01-01"
+# 带空格 mode + 两值相同(IN 去重, 单组输出)
+12 "REG AIR" "REG AIR" "1997-05-01"
+# 与下一行构成交换不变对
+12 "AIR" "MAIL" "1996-01-01"
+# 结果必须与上一行一致
+12 "MAIL" "AIR" "1996-01-01"
+# 窗口只剩 1 天(receiptdate 上界当天)
+12 "FOB" "RAIL" "1998-12-31"
+# 空结果
+12 "SHIP" "TRUCK" "1999-01-01"
+
+# ---- q13 (WORD1, WORD2): o_comment not like '%W1%W2%' ----
+# 基准
+13 "pending" "accounts"
+# TPC-H 经典词对
+13 "special" "requests"
+# 两词都不出现 -> 等价无过滤(最大结果, 覆盖全部 customer)
+13 "zzz" "qqq"
+# 同词两次: comment 中需出现两遍才命中(稀疏边界)
+13 "special" "special"
+# 大小写不命中 -> 过滤失效
+13 "PENDING" "accounts"
+
+# ---- q14 (DATE): +1 month 窗口, 100*sum/sum ----
+# 基准
+14 "1996-04-01"
+# 闰年归一化: +1mo -> 1996-02-29
+14 "1996-01-31"
+# 非闰归一化: +1mo -> 1995-02-28
+14 "1995-01-31"
+# 数据最后一天的单日窗口
+14 "1998-12-01"
+# 空结果 -> promo_revenue 为 NULL 的单行输出
+14 "1998-12-02"
+
+# ---- q15 (DATE): CTE + max 子查询 ----
+# 基准
+15 "1993-09-01"
+# 中段窗口
+15 "1996-06-01"
+# 尾部不完整窗口
+15 "1998-09-01"
+# CTE 空 -> max 为 NULL -> 连接无结果 -> 0 行(留意 max 并列多行)
+15 "1998-12-02"
+# 头部窗口
+15 "1992-01-01"
+
+# ---- q16 (BRAND, TYPE, SIZE1..SIZE8): 共 10 个参数 ----
+# 基准
+16 "Brand#45" "PROMO POLISHED" "15" "21" "1" "37" "44" "7" "19" "18"
+# SIZE 全相同(IN 去重语义)
+16 "Brand#11" "ECONOMY" "5" "5" "5" "5" "5" "5" "5" "5"
+# 混入上下边界 1 和 50
+16 "Brand#55" "MEDIUM" "1" "50" "2" "49" "3" "48" "4" "47"
+# TYPE 空串 -> not like '%' 恒假 -> 0 行(与 q2 空 TYPE 镜像)
+16 "Brand#45" "" "15" "21" "1" "37" "44" "7" "19" "18"
+# 不存在的 brand, <> 条件不排除任何行(no-op 条件)
+16 "Brand#99" "PROMO" "15" "21" "1" "37" "44" "7" "19" "18"
+
+# ---- q17 (BRAND, CONTAINER): 相关子查询 avg ----
+# 基准
+17 "Brand#55" "LG JAR"
+# TPC-H 经典组合
+17 "Brand#23" "MED BOX"
+# 第三前缀族
+17 "Brand#45" "SM CASE"
+# 若无此组合 -> 无行匹配 -> sum 为 NULL 的单行(/7.0 的 NULL 传播)
+17 "Brand#51" "WRAP DRUM"
+
+# ---- q18 (QUANTITY): having sum 阈值(每单上限约 7*50=350) ----
+# 基准
+18 "315"
+# 阈值降低, 命中更多订单
+18 "250"
+# 接近每单上限
+18 "345"
+# 子查询恒空 -> 0 行(注意不是 NULL 行)
+18 "400"
+# 几乎全部订单(大结果, 校验排序稳定性)
+18 "1"
+
+# ---- q19 (BRAND1, QTY1, BRAND2, QTY2, BRAND3, QTY3): 交错顺序, 共 6 个 ----
+# 基准(品牌、数量交替喂)
+19 "Brand#23" "3" "Brand#24" "12" "Brand#51" "27"
+# 同一品牌走三个分支、三个数量窗口
+19 "Brand#45" "1" "Brand#45" "20" "Brand#45" "40"
+# 第一分支品牌不存在, 另外两支照常出数(OR 分支独立性)
+19 "Brand#98" "1" "Brand#24" "10" "Brand#51" "20"
+# 数量窗口 40~50 顶格(数据上限 50, QTY+10 越界自然截断)
+19 "Brand#23" "40" "Brand#24" "40" "Brand#51" "40"
+# 三支全空 -> revenue 为 NULL 的单行
+19 "Brand#98" "1" "Brand#98" "1" "Brand#98" "1"
+
+# ---- q20 (COLOR, DATE, NATION): 前缀匹配 like 'COLOR%' ----
+# 基准
+20 "indian" "1994-01-01" "PERU"
+# 单字符前缀, 命中 indian/ivory
+20 "i" "1994-01-01" "VIETNAM"
+# 大写前缀不命中 -> 空结果
+20 "INDIAN" "1994-01-01" "PERU"
+# 窗口贴近数据尾部
+20 "indian" "1998-01-01" "CANADA"
+# 窗口内无线项 -> sum 为 NULL -> ps_availqty > NULL 恒假 -> 0 行(NULL 比较语义)
+20 "indian" "1999-01-01" "PERU"
+
+# ---- q21 (NATION): exists / not exists ----
+# 基准
+21 "FRANCE"
+# 带空格国名
+21 "SAUDI ARABIA"
+# 带空格国名, 结果规模不同
+21 "UNITED KINGDOM"
+# 不存在 -> 0 行
+21 "ATLANTIS"
+
+# ---- q22 (I1..I7): 国家码 IN(10~34), 共 7 个 ----
+# 基准
+22 "27" "31" "12" "19" "13" "28" "25"
+# 全同码 -> 单组输出
+22 "10" "10" "10" "10" "10" "10" "10"
+# 覆盖国家码首尾 10/34
+22 "10" "34" "11" "33" "12" "32" "13"
+# 全不存在 -> avg 子查询空 -> c_acctbal > NULL 恒假 -> 0 行
+22 "99" "98" "97" "96" "95" "94" "93"
