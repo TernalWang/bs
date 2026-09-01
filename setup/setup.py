@@ -6,7 +6,7 @@ from pathlib import Path
 from human_ref.prompt.prompts import ARGS_PARSER_QUERY, ARGS_PARSER_READ, LOADER_FIELD, LOADER_LOAD
 from sessions.sessions import make_session
 from tools.shell.shell_tool import WORKSPACE
-from tools.verify.duckdb_tool import run_query_json, dump_schema
+from tools.verify.duckdb_tool import run_query_json, dump_schema, dump_scale_stats
 
 
 def gen_args_parser(hpp: Path, query_dir: Path) -> None:
@@ -54,6 +54,9 @@ def setup_workspace(queries: list[int], infra: Path, sf1: Path, query: Path, hum
 
     print("Generate schema into workspace")
     (WORKSPACE / "duckdb_plans" / "schema.txt").write_text(dump_schema())
+
+    print("Generate scale stats into workspace")
+    (WORKSPACE / "duckdb_plans" / "scale_stats.txt").write_text(dump_scale_stats())
 
     print("Generate args_parser into workspace")
     gen_args_parser(WORKSPACE / "infra" / "include" / "args_parser.hpp", WORKSPACE / "querys")

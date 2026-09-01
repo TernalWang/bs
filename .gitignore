@@ -3,4 +3,4 @@
 !.gitattributes
 __pycache__/
 workspace/
-
+human_ref/*/parquets/*0*

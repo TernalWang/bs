@@ -33,6 +33,7 @@ def storage_plan_prompt(n: int) -> str:
         - 必须存储全部数据，且存储方式要能无损还原(flatten)回原始数据
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
+        - 数据量会增长到当前的1000倍：规模相关的参数（行数、基数、分区数、字典容量等）不要写死，从实际数据推导（哪些量恒定、哪些随规模增长见 duckdb_plans/scale_stats.txt）
         - 不要去读任何其他的文件
 
         查询负载见文件：querys/q{n}.txt。
@@ -57,6 +58,7 @@ def overall_storage_prompt(queries: list[int]) -> str:
         - 必须存储全部数据，且存储方式要能无损还原(flatten)回原始数据
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
+        - 数据量会增长到当前的1000倍：规模相关的参数（行数、基数、分区数、字典容量等）不要写死，从实际数据推导（哪些量恒定、哪些随规模增长见 duckdb_plans/scale_stats.txt）
         - 不要去读任何其他的文件
 
         基于以上所有材料，写出最终的统一存储布局方案，写入文件 storage_plan.txt。"""
@@ -84,6 +86,7 @@ def todo_prompt(queries: list[int]) -> str:
         即：仅当字段含逗号/引号/换行时才用引号包裹；字段内的引号写成两个（""）；字段内的反斜杠写成 \\\\。与run_query标准答案CSV完全同格式。
 
         表结构见文件 duckdb_plans/schema.txt。
+        数据规模增长统计见文件 duckdb_plans/scale_stats.txt。
 
         请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
         我之后会按顺序用不同的 agent 逐个执行，共 {len(queries) + 1} 个 agent（1 个构建阶段 + {len(queries)} 个查询阶段），所以把计划拆成对应的 {len(queries) + 1} 个文件：

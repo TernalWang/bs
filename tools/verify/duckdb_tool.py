@@ -31,6 +31,19 @@ def dump_schema():
     return "\n\n".join(ddl) + "\n"
 
 
+def dump_scale_stats():
+    con = duckdb.connect()                        # 独立连接:直接扫 parquet,不依赖 start() 载表
+    scales = [SF1, SF1.parent / "sf10"]           # 只对比 sf1 与 sf10:10倍跨度,信号强且扫描量小
+    lines = ["数据量会增长到当前的1000倍。以下为各规模实例实测的表行数与列 distinct 数(近似)，随数据量增长的量不要当作设计常量："]
+    for t in TABLES:
+        for p in scales:
+            r = con.execute(f"select count(*), approx_count_distinct(COLUMNS(*)) from read_parquet('{p}/{t}.parquet')")
+            res = r.fetchone()
+            lines.append(f"{t}@{p.name} rows={res[0]}  " + "  ".join(f"{d[0]}_distinct={v}" for d, v in zip(r.description[1:], res[1:])))
+    con.close()
+    return "\n".join(lines) + "\n"
+
+
 def run_query(line):
     toks = shlex.split(line)                     # '1 "90"' → ['1','90']; 引号内空格不劈
     tpl = (QUERY_DIR / f"q{toks[0]}.txt").read_text()
