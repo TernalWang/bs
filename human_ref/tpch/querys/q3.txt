@@ -18,5 +18,5 @@ GROUP BY
     o_shippriority 
 ORDER BY
     revenue desc,  
-    o_orderdate;
-
+	o_orderdate
+limit 10;
