@@ -33,13 +33,16 @@ def dump_schema():
 
 def dump_scale_stats():
     con = duckdb.connect()                        # 独立连接:直接扫 parquet,不依赖 start() 载表
-    scales = [SF1, SF1.parent / "sf10"]           # 只对比 sf1 与 sf10:10倍跨度,信号强且扫描量小
-    lines = ["数据量会增长到当前的1000倍。以下为各规模实例实测的表行数与列 distinct 数(近似)，随数据量增长的量不要当作设计常量："]
+    scales = [SF1, SF1.parent / "sf100"]          # 只对比 sf1 与 sf100:100倍跨度
+    no_range = ("VARCHAR", "CHAR", "BLOB", "JSON", "UUID", "LIST", "STRUCT", "MAP")  # 这些类型不打 min/max
+    lines = ["数据量会增长到当前的1000倍。以下为 1倍与100倍两个规模实例实测的表行数、列 distinct 数(近似)与 min/max，随数据量增长的量不要当作设计常量："]
     for t in TABLES:
         for p in scales:
-            r = con.execute(f"select count(*), approx_count_distinct(COLUMNS(*)) from read_parquet('{p}/{t}.parquet')")
-            res = r.fetchone()
-            lines.append(f"{t}@{p.name} rows={res[0]}  " + "  ".join(f"{d[0]}_distinct={v}" for d, v in zip(r.description[1:], res[1:])))
+            f = f"{p}/{t}.parquet"
+            n = con.execute(f"select count(*) from read_parquet('{f}')").fetchone()[0]
+            s = con.execute(f"summarize select * from read_parquet('{f}')").fetchall()
+            parts = [f"{c}_distinct={u}" + ("" if typ.upper().startswith(no_range) else f"[{mn}..{mx}]") for c, typ, mn, mx, u, *_ in s]
+            lines.append(f"{t}@{p.name} rows={n}  " + "  ".join(parts))
     con.close()
     return "\n".join(lines) + "\n"
 
