@@ -34,6 +34,7 @@ def storage_plan_prompt(n: int) -> str:
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
         - 数据量会增长到当前的1000倍：规模相关的参数（行数、基数、分区数、字典容量等）不要写死，从实际数据推导（哪些量恒定、哪些随规模增长见 duckdb_plans/scale_stats.txt）
+        - 原始数据本身不保徐并且随着数据增长更不保序
         - 不要去读任何其他的文件
 
         查询负载见文件：querys/q{n}.txt。
@@ -59,6 +60,7 @@ def overall_storage_prompt(queries: list[int]) -> str:
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
         - 数据量会增长到当前的1000倍：规模相关的参数（行数、基数、分区数、字典容量等）不要写死，从实际数据推导（哪些量恒定、哪些随规模增长见 duckdb_plans/scale_stats.txt）
+        - 原始数据本身不保徐并且随着数据增长更不保序
         - 不要去读任何其他的文件
 
         基于以上所有材料，写出最终的统一存储布局方案，写入文件 storage_plan.txt。"""
@@ -70,7 +72,7 @@ def todo_prompt(queries: list[int]) -> str:
         该引擎需要执行 {"、".join(f"querys/q{x}.txt" for x in queries)} 中描述的 SQL 查询（共 {len(queries)} 条！！）。
         数据类型和运算符可以硬编码进程序，以避免解释执行的开销。
 
-        首先，在文件 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中，把表从 ArrowTable 转换为自定义的数据结构（构建阶段）。
+        首先，在文件 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中，把表从 ArrowTable (原始数据本身不保徐并且随着数据增长更不保序) 转换为自定义的数据结构（构建阶段）。
         把它存储为一个 Database 结构体对象（预定义在 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中）。
         使用高效的内存数据表示，让查询能够快速执行。存储方案写在文件 `storage_plan.txt` 里，它描述了如何把 parquet 数据存入内存以获得最优的查询执行性能。请按照这份存储方案来实现内存数据结构。
 
@@ -86,7 +88,7 @@ def todo_prompt(queries: list[int]) -> str:
         即：仅当字段含逗号/引号/换行时才用引号包裹；字段内的引号写成两个（""）；字段内的反斜杠写成 \\\\。与run_query标准答案CSV完全同格式。
 
         表结构见文件 duckdb_plans/schema.txt。
-        数据规模增长统计见文件 duckdb_plans/scale_stats.txt。
+        数据规模增长统计见文件 duckdb_plans/scale_stats.txt。(数据量会增长到当前的1000倍 这个相关的应该告知所有TODO)
 
         请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
         我之后会按顺序用不同的 agent 逐个执行，共 {len(queries) + 1} 个 agent（1 个构建阶段 + {len(queries)} 个查询阶段），所以把计划拆成对应的 {len(queries) + 1} 个文件：
