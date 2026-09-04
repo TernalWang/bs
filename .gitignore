@@ -4,3 +4,4 @@
 __pycache__/
 workspace/
 human_ref/*/parquets/*0*
+human_ref/*/parquets/partitions
