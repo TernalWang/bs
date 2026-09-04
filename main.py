@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     print("Generate TODO based on overall storage plan")
     result = asyncio.run(Runner.run(make_rwcv_agent(RWCV_INSTRUCTIONS), input=todo_prompt(QUERIES),
-        session=make_session("storage_todo"), max_turns=100))
+        session=make_session("storage_todo"), max_turns=700))
     print_report(result)
     for f in ("TODO_storage.md", *(f"TODO_query{n}.md" for n in QUERIES)):
         (WORKSPACE / f).read_text()
