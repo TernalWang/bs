@@ -13,6 +13,7 @@ def todo_instructions(todo_file: str) -> str:
     return (
         f"你在 {WORKSPACE} 下按照{todo_file}完成工作"
         "每完成一项就在文件中✅标记一下别的TODO.md和你无关！。"
+        "数据量会增长到当前的1000倍：规模相关的参数（行数、基数、分区数、字典容量等）不要写死，从实际数据推导（哪些量恒定、哪些随规模增长见 duckdb_plans/scale_stats.txt）。"
         "run_shell 可以看文件、跑 infra/build/db、"
         "小修改（替换字符串、改几行代码、勾选 TODO）用 sed/awk 完成。"
         "write_file 可以写文件。"
