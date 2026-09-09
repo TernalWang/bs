@@ -6,7 +6,7 @@ from pathlib import Path
 from human_ref.prompt.prompts import ARGS_PARSER_QUERY, ARGS_PARSER_READ, LOADER_FIELD, LOADER_LOAD
 from sessions.sessions import make_session
 from tools.shell.shell_tool import WORKSPACE
-from tools.verify.duckdb_tool import run_query_json, dump_schema, dump_scale_stats
+from tools.verify.duckdb_tool import run_query_json, dump_schema
 
 
 def gen_args_parser(hpp: Path, query_dir: Path) -> None:
@@ -31,7 +31,7 @@ def gen_loader(hpp: Path, cpp: Path, tables: list[str]) -> None:
     cpp.write_text(cpp.read_text().replace("// TABLES_LOAD", loads.rstrip("\n")))
 
 
-def setup_workspace(queries: list[int], infra: Path, sf1: Path, query: Path, human_input: Path, tables: list[str]) -> None:
+def setup_workspace(queries: list[int], infra: Path, sf10: Path, query: Path, human_input: Path, tables: list[str], partitions: Path) -> None:
     print("Create workspace")
     WORKSPACE.mkdir(exist_ok=False)
 
@@ -41,11 +41,14 @@ def setup_workspace(queries: list[int], infra: Path, sf1: Path, query: Path, hum
     print("Copy infra into workspace")
     shutil.copytree(infra, WORKSPACE / "infra", dirs_exist_ok=False)
 
-    print("Copy sf1 into workspace")
-    shutil.copytree(sf1, WORKSPACE / "parquets" / "sf1", dirs_exist_ok=False)
+    print("Copy sf10 into workspace")
+    shutil.copytree(sf10, WORKSPACE / "parquets" / "sf10", dirs_exist_ok=False)
+
+    print("Copy partitions into workspace")
+    (dst := WORKSPACE / "parquets" / "partitions").mkdir(parents=True); [shutil.copy2(f, dst / f.name) for f in sorted(partitions.glob("*.parquet"))[:10]]
 
     print("Copy querys into workspace")
-    shutil.copytree(query, WORKSPACE / "querys", dirs_exist_ok=False)
+    shutil.copytree(query, WORKSPACE / "querys", ignore=lambda d, ns: [n for n in ns if n.startswith("q") and n[1:-4].isdigit() and int(n[1:-4]) not in queries], dirs_exist_ok=False)
 
     print("Generate duckdb plans into workspace")
     (WORKSPACE / "duckdb_plans").mkdir()
@@ -55,11 +58,8 @@ def setup_workspace(queries: list[int], infra: Path, sf1: Path, query: Path, hum
     print("Generate schema into workspace")
     (WORKSPACE / "duckdb_plans" / "schema.txt").write_text(dump_schema())
 
-    print("Generate scale stats into workspace")
-    (WORKSPACE / "duckdb_plans" / "scale_stats.txt").write_text(dump_scale_stats())
-
     print("Generate args_parser into workspace")
     gen_args_parser(WORKSPACE / "infra" / "include" / "args_parser.hpp", WORKSPACE / "querys")
 
-    print("Generate loader into workspace")
-    gen_loader(WORKSPACE / "infra" / "include" / "loader.hpp", WORKSPACE / "infra" / "loader" / "loader.cpp", tables)
+    # print("Generate loader into workspace")
+    # gen_loader(WORKSPACE / "infra" / "include" / "loader.hpp", WORKSPACE / "infra" / "loader" / "loader.cpp", tables)
