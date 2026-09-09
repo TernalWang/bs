@@ -21,6 +21,7 @@ def todo_instructions(todo_file: str) -> str:
         "compile_cpp 可以把infra编译成db这个binary。"
         "run_query可以返回查询的标准答案和延迟的baseline"
         "拿你 db 的输出与它对比验证。"
+        "验证完以后再检查一遍自己的代码"
     )
 
 def storage_plan_prompt(n: int) -> str:
