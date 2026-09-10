@@ -3,7 +3,7 @@ import re
 import shutil
 from pathlib import Path
 
-from human_ref.prompt.prompts import ARGS_PARSER_QUERY, ARGS_PARSER_READ, LOADER_FIELD, LOADER_LOAD
+from human_ref.prompt.prompts import ARGS_PARSER_QUERY, ARGS_PARSER_READ, LOADER_DECL, LOADER_FIELD, LOADER_LOAD
 from sessions.sessions import make_session
 from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import run_query_json, dump_schema
@@ -24,9 +24,10 @@ def gen_tables(sf1: Path) -> list[str]:
     return [p.stem for p in sorted(sf1.glob("*.parquet"))]
 
 
-def gen_loader(hpp: Path, cpp: Path, tables: list[str]) -> None:
+def gen_loader(hpp: Path, cpp: Path, tables: list[str], partitions: Path) -> None:
     fields = "".join(LOADER_FIELD % {"table": t} for t in tables)
-    loads = "".join(LOADER_LOAD % {"table": t} for t in tables)
+    stems = [p.stem for p in sorted(partitions.glob("*.parquet"))]
+    loads = LOADER_DECL % {"count": len(stems)} + "".join(LOADER_LOAD % {"i": i, "table": re.sub(r"_\d+$", "", s), "stem": s} for i, s in enumerate(stems))
     hpp.write_text(hpp.read_text().replace("// TABLES_FIELD", fields.rstrip("\n")))
     cpp.write_text(cpp.read_text().replace("// TABLES_LOAD", loads.rstrip("\n")))
 
@@ -61,5 +62,5 @@ def setup_workspace(queries: list[int], infra: Path, sf10: Path, query: Path, hu
     print("Generate args_parser into workspace")
     gen_args_parser(WORKSPACE / "infra" / "include" / "args_parser.hpp", WORKSPACE / "querys")
 
-    # print("Generate loader into workspace")
-    # gen_loader(WORKSPACE / "infra" / "include" / "loader.hpp", WORKSPACE / "infra" / "loader" / "loader.cpp", tables)
+    print("Generate loader into workspace")
+    gen_loader(WORKSPACE / "infra" / "include" / "loader.hpp", WORKSPACE / "infra" / "loader" / "loader.cpp", tables, WORKSPACE / "parquets" / "partitions")

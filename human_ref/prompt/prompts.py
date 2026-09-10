@@ -127,5 +127,8 @@ inline Q%(n)sArgs parse_q%(n)s(const QueryRequest& request) {
 LOADER_FIELD = """    ArrowTable %(table)s;
 """
 
-LOADER_LOAD = """    tables->%(table)s = ReadParquetTable(path + "%(table)s.parquet");
+LOADER_DECL = """    auto tables = new ParquetTables[%(count)d];
+"""
+
+LOADER_LOAD = """    tables[%(i)d].%(table)s = ReadParquetTable(path + "%(stem)s.parquet");
 """

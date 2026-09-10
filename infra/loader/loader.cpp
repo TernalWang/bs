@@ -7,8 +7,6 @@
 
 
 ParquetTables* load(const std::string& path) {
-    auto tables = new ParquetTables{};
-
 // TABLES_LOAD
 
     return tables;
