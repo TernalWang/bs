@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 
-ParquetTables* load(const std::string& path) {
+std::vector<ParquetTables> load(const std::string& path) {
 // TABLES_LOAD
 
     return tables;

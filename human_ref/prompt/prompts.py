@@ -127,8 +127,14 @@ inline Q%(n)sArgs parse_q%(n)s(const QueryRequest& request) {
 LOADER_FIELD = """    ArrowTable %(table)s;
 """
 
-LOADER_DECL = """    auto tables = new ParquetTables[%(count)d];
+LOADER_DECL = """    auto tables = std::vector<ParquetTables>(%(count)d);
 """
 
 LOADER_LOAD = """    tables[%(i)d].%(table)s = ReadParquetTable(path + "%(stem)s.parquet");
+"""
+
+BUILDER_BUILD = """    std::vector<Database*> db(%(count)d);
+
+    #pragma omp parallel for schedule(dynamic) num_threads(50)
+    for (int i = 0; i < %(count)d; ++i) db[i] = build(&tables[i]);
 """

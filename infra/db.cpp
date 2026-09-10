@@ -13,9 +13,10 @@ int main(int argc, char** argv) {
     std::string dir = argv[1];
     if (!dir.empty() && dir.back() != '/') dir += '/';
 
-    ParquetTables* tables = load(dir);
-    Database* db = build(tables);
-    query(db);
+    std::vector<ParquetTables> tables = load(dir);
+// BUILDER_BUILD
+
+    // query(db);
 
     return 0;
 }

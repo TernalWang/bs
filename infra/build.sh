@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 SRC="db.cpp loader/loader.cpp loader/loader_utils.cpp builder/builder_impl.cpp query/query_impl.cpp"
 
 mkdir -p build
-g++ -std=c++20 -O2 -Iinclude $(pkg-config --cflags arrow parquet) \
+g++ -std=c++20 -O2 -fopenmp -Iinclude $(pkg-config --cflags arrow parquet) \
     $SRC -o build/db $(pkg-config --libs arrow parquet)
 
 echo "✅ build/db"
