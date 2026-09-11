@@ -47,10 +47,10 @@ if __name__ == "__main__":
     for f in ("TODO_storage.md", *(f"TODO_query{n}.md" for n in QUERIES)):
         (WORKSPACE / f).read_text()
 
-    # print("start coding")
-    # result = asyncio.run(Runner.run(make_rwcv_agent(coding_instructions("TODO_storage.md")), input=STORAGE_CODE_INPUT, session=make_session("code_storage"), max_turns=700))
-    # print_report(result)
+    print("start coding")
+    result = asyncio.run(Runner.run(make_rwcv_agent(coding_instructions("TODO_storage.md")), input=STORAGE_CODE_INPUT, session=make_session("code_storage"), max_turns=700))
+    print_report(result)
 
-    # for n in QUERIES:
-    #     result = asyncio.run(Runner.run(make_rwcv_agent(coding_instructions(f"TODO_query{n}.md")), input=query_code_input(n), session=make_session(f"code_q{n}"), max_turns=700))
-    #     print_report(result)
+    for n in QUERIES:
+        result = asyncio.run(Runner.run(make_rwcv_agent(coding_instructions(f"TODO_query{n}.md")), input=query_code_input(n), session=make_session(f"code_q{n}"), max_turns=700))
+        print_report(result)

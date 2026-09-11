@@ -114,9 +114,11 @@ def query_code_input(n: int) -> str:
 def coding_instructions(todo_file: str) -> str:
     return (
         f"你在 {WORKSPACE} 下按照{todo_file}完成工作"
-        "每完成一项就在文件中✅标记一下别的TODO.md和你无关！。"
+        "每完成一项就在文件中✅标记一下，别的TODO.md和你无关！"
+        "可修改的文件只有 infra/include/builder_impl.hpp、infra/builder/builder_impl.cpp、infra/query/q*_impl.hpp；其余（db.cpp、query_impl.cpp、loader/、args_parser.hpp、build.sh）是框架，不许改。"
+        "自己产生的中间文件（临时输出、对比副本、测试脚本等）一律写进 /tmp 下自建的时间戳目录（如 /tmp/work-$(date +%Y%m%d-%H%M%S)/），不要放 workspace，workspace 只保留最终交付物。"
         "DECIMAL舍入只许一次除非万不得已"
-        "数据量会增长到当前的1000倍：规模相关的模块和参数（行数、基数、分区数、字典容量等）不要写死，从实际数据推导（哪些量恒定、哪些随规模增长见 duckdb_plans/scale_stats.txt）。"
+        "分区数会从当前的 10 个增长到上百甚至上千个，行数、基数、字典容量等同样会变：按上千分区的规模设计，当前观察到的数字不要写死，编码与结构在 build 期自适应。"
         "run_shell 可以看文件、跑 infra/build/db、"
         "小修改（替换字符串、改几行代码、勾选 TODO）用 sed/awk 完成。"
         "write_file 可以写文件。"
