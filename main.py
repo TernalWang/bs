@@ -3,7 +3,7 @@ from pathlib import Path
 from agents import Runner
 
 from agent.agent import make_rw_agent, make_rwcv_agent, print_report
-from human_ref.prompt.prompts import RWCV_INSTRUCTIONS, RW_INSTRUCTIONS, STORAGE_CODE_INPUT, overall_storage_prompt, query_code_input, storage_plan_prompt, todo_instructions, todo_prompt
+from human_ref.prompt.prompts import RWCV_INSTRUCTIONS, RW_INSTRUCTIONS, STORAGE_CODE_INPUT, TODO_PLAN_INPUT, coding_instructions, overall_storage_prompt, query_code_input, storage_plan_prompt, todo_plan_instructions
 from sessions.sessions import make_session
 from setup.setup import setup_workspace, gen_tables
 from tools.shell.shell_tool import WORKSPACE
@@ -28,13 +28,11 @@ if __name__ == "__main__":
 
     for n in QUERIES:
         print(f"Generate query {n} storage plan")
-        result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=storage_plan_prompt(n),
-            session=make_session(f"plan_q{n}"), max_turns=75))
+        result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=storage_plan_prompt(n), session=make_session(f"plan_q{n}"), max_turns=75))
         print_report(result)
 
     print("Generate overall storage plan")
-    result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=overall_storage_prompt(QUERIES),
-        session=make_session("storage"), max_turns=700))
+    result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=overall_storage_prompt(QUERIES), session=make_session("storage"), max_turns=700))
     print_report(result)
 
     print("Archive and delete seprate storage plan")
@@ -44,16 +42,15 @@ if __name__ == "__main__":
         p.unlink()
 
     print("Generate TODO based on overall storage plan")
-    result = asyncio.run(Runner.run(make_rwcv_agent(RWCV_INSTRUCTIONS), input=todo_prompt(QUERIES),
-        session=make_session("storage_todo"), max_turns=700))
+    result = asyncio.run(Runner.run(make_rwcv_agent(RWCV_INSTRUCTIONS + todo_plan_instructions(QUERIES)), input=TODO_PLAN_INPUT, session=make_session("storage_todo"), max_turns=700))
     print_report(result)
     for f in ("TODO_storage.md", *(f"TODO_query{n}.md" for n in QUERIES)):
         (WORKSPACE / f).read_text()
 
     # print("start coding")
-    # result = asyncio.run(Runner.run(make_rwcv_agent(todo_instructions("TODO_storage.md")), input=STORAGE_CODE_INPUT, session=make_session("code_storage"), max_turns=700))
+    # result = asyncio.run(Runner.run(make_rwcv_agent(coding_instructions("TODO_storage.md")), input=STORAGE_CODE_INPUT, session=make_session("code_storage"), max_turns=700))
     # print_report(result)
 
     # for n in QUERIES:
-    #     result = asyncio.run(Runner.run(make_rwcv_agent(todo_instructions(f"TODO_query{n}.md")), input=query_code_input(n), session=make_session(f"code_q{n}"), max_turns=700))
+    #     result = asyncio.run(Runner.run(make_rwcv_agent(coding_instructions(f"TODO_query{n}.md")), input=query_code_input(n), session=make_session(f"code_q{n}"), max_turns=700))
     #     print_report(result)
