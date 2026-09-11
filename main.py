@@ -15,7 +15,7 @@ SF10 = BENCHMARK / "parquets" / "sf10"
 QUERY = BENCHMARK / "querys"
 HUMAN_INPUT = BENCHMARK / "input"
 TABLES = gen_tables(SF10)
-QUERIES = [1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+QUERIES = [1,2,3]
 PARTITIONS = BENCHMARK / "parquets" / "partitions"
 
 
@@ -26,16 +26,16 @@ if __name__ == "__main__":
     print("Setup workspace")
     setup_workspace(QUERIES, INFRA, SF10, QUERY, HUMAN_INPUT, TABLES, PARTITIONS)
 
-    # for n in QUERIES:
-    #     print(f"Generate query {n} storage plan")
-    #     result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=storage_plan_prompt(n),
-    #         session=make_session(f"plan_q{n}"), max_turns=75))
-    #     print_report(result)
+    for n in QUERIES:
+        print(f"Generate query {n} storage plan")
+        result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=storage_plan_prompt(n),
+            session=make_session(f"plan_q{n}"), max_turns=75))
+        print_report(result)
 
-    # print("Generate overall storage plan")
-    # result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=overall_storage_prompt(QUERIES),
-    #     session=make_session("storage"), max_turns=700))
-    # print_report(result)
+    print("Generate overall storage plan")
+    result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=overall_storage_prompt(QUERIES),
+        session=make_session("storage"), max_turns=700))
+    print_report(result)
 
     # print("Archive and delete seprate storage plan")
     # for n in QUERIES:
