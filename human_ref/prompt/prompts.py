@@ -77,21 +77,21 @@ def overall_storage_prompt(queries: list[int]) -> str:
         基于以上所有材料，写出最终的统一存储布局方案，写入文件 storage_plan.txt。"""
 
 def todo_prompt(queries: list[int]) -> str:
-    query_todos = "\n        ".join(f"- TODO_query{x}.md：Q{x} 执行阶段（query_impl.cpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比。" for x in queries)
+    query_todos = "\n        ".join(f"- TODO_query{x}.md：Q{x} 执行阶段（q{x}_impl.hpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比。" for x in queries)
     return f"""你是一名资深的数据库工程师和熟练的程序员。
         用 C++ 编写一个专用的高性能数据库引擎，只针对一组预定义的查询做优化。
         该引擎需要执行 {"、".join(f"querys/q{x}.txt" for x in queries)} 中描述的 SQL 查询（共 {len(queries)} 条！！）。
         数据类型和运算符可以硬编码进程序，以避免解释执行的开销。
 
-        首先，在文件 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中，把表从 ArrowTable (原始数据本身不保徐并且随着数据增长更不保序) 转换为自定义的数据结构（构建阶段）。
-        把它存储为一个 Database 结构体对象（预定义在 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中）。
+        首先，在文件 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中，把每个分区的 ArrowTable（原始数据本身不保序并且随着数据增长更不保序）转换为自定义的数据结构（构建阶段）。
+        每个分区独立构建为一个 Database 结构体对象（全部分区同构、共用同一套布局，由框架并行调度）。
         使用高效的内存数据表示，让查询能够快速执行。存储方案写在文件 `storage_plan.txt` 里，它描述了如何把 parquet 数据存入内存以获得最优的查询执行性能。请按照这份存储方案来实现内存数据结构。
 
-        然后在这个数据结构上执行查询（执行阶段）。执行逻辑的接口已经预定义在 `infra/query/query_impl.cpp` 中。
-        查询接口作用于一个 QueryRequest 列表，每个请求对应一条要执行的查询。
-        每条查询的格式为：`<查询号> <查询参数>`（例如查询 Q42 带参数 "EUROPE" 和 "1995-01-01" 时："42 EUROPE 1995-01-01"）含空格的值必须加双引号（如 "REG AIR"）。
-        解析查询号和参数时，使用 `infra/include/args_parser.hpp` 中定义的 header-only C++ 解析器。
-        数据库引擎应按顺序执行参数列表中指定的所有查询。
+        然后在这个数据结构上执行查询（执行阶段）。每条查询的执行接口已预定义在 `infra/query/q{n}_impl.hpp` 中，共三件：
+        - `struct Q{n}Mid`：该查询的中间结果结构体（内容由你设计）
+        - `mid_q{n}(Database*, const Q{n}Args&)`：phase1，在单个分区上执行，产出一个 Q{n}Mid
+        - `final_q{n}(mids, args, run_nr)`：phase2，汇总全部分区的 Q{n}Mid，产出最终结果并写入 result<run_nr>.csv
+        查询参数由框架解析好后以 Q{n}Args 传入；调度、分发、计时全部由框架完成，不要修改框架文件。
 
         把每条查询的输出写入单独的 csv 文件。
         命名为 `result<RUN_NR>.csv`，其中 `<RUN_NR>` 是该查询在参数列表中的位置（从 1 开始计数）。
@@ -99,9 +99,12 @@ def todo_prompt(queries: list[int]) -> str:
         即：仅当字段含逗号/引号/换行时才用引号包裹；字段内的引号写成两个（""）；字段内的反斜杠写成 \\\\。与run_query标准答案CSV完全同格式。
 
         表结构见文件 duckdb_plans/schema.txt。
-        数据规模增长统计见文件 duckdb_plans/scale_stats.txt。(数据量会增长到当前的1000倍 这个相关的应该告知所有TODO)
+        分区数会从当前的 10 个增长到上百甚至上千个，行数、基数、字典容量等同样会变：按上千分区的规模设计，当前观察到的数字不要写死，编码与结构在 build 期自适应。（这条要告知所有 TODO）
 
-        请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
+        写作顺序：先写 TODO_storage.md，再按查询号从小到大逐个写 TODO_query{n}.md。
+        每个 TODO_query{n}.md 必须显式引用 storage_plan.txt 中与该查询相关的具体章节，并写明 phase1（每分区做什么、Q{n}Mid 装什么）与 phase2（如何汇总、如何写 result csv）。
+
+        请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构方面的概念性注释。
         我之后会按顺序用不同的 agent 逐个执行，共 {len(queries) + 1} 个 agent（1 个构建阶段 + {len(queries)} 个查询阶段），所以把计划拆成对应的 {len(queries) + 1} 个文件：
         - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：实现后 compile_cpp 编译通过即可。
         {query_todos}

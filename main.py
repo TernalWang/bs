@@ -37,18 +37,18 @@ if __name__ == "__main__":
         session=make_session("storage"), max_turns=700))
     print_report(result)
 
-    # print("Archive and delete seprate storage plan")
-    # for n in QUERIES:
-    #     p = WORKSPACE / f"storage_plan{n}.txt"
-    #     asyncio.run(make_session(f"plan_q{n}_archive").add_items([{"role": "assistant", "content": p.read_text()}]))
-    #     p.unlink()
+    print("Archive and delete seprate storage plan")
+    for n in QUERIES:
+        p = WORKSPACE / f"storage_plan{n}.txt"
+        asyncio.run(make_session(f"plan_q{n}_archive").add_items([{"role": "assistant", "content": p.read_text()}]))
+        p.unlink()
 
-    # print("Generate TODO based on overall storage plan")
-    # result = asyncio.run(Runner.run(make_rwcv_agent(RWCV_INSTRUCTIONS), input=todo_prompt(QUERIES),
-    #     session=make_session("storage_todo"), max_turns=700))
-    # print_report(result)
-    # for f in ("TODO_storage.md", *(f"TODO_query{n}.md" for n in QUERIES)):
-    #     (WORKSPACE / f).read_text()
+    print("Generate TODO based on overall storage plan")
+    result = asyncio.run(Runner.run(make_rwcv_agent(RWCV_INSTRUCTIONS), input=todo_prompt(QUERIES),
+        session=make_session("storage_todo"), max_turns=700))
+    print_report(result)
+    for f in ("TODO_storage.md", *(f"TODO_query{n}.md" for n in QUERIES)):
+        (WORKSPACE / f).read_text()
 
     # print("start coding")
     # result = asyncio.run(Runner.run(make_rwcv_agent(todo_instructions("TODO_storage.md")), input=STORAGE_CODE_INPUT, session=make_session("code_storage"), max_turns=700))
