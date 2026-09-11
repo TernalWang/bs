@@ -35,6 +35,17 @@ MidResult* midresult(Database*, const QueryRequest& request) {
 }
 
 
+void results(const std::vector<Database*>& dbs, const std::vector<QueryRequest>& requests) {
+    std::vector<MidResult*> midresults(dbs.size());
+    for (const auto& request : requests) {
+        #pragma omp parallel for schedule(dynamic) num_threads(50)
+        for (int i = 0; i < (int)dbs.size(); ++i) midresults[i] = midresult(dbs[i], request);
+
+        // TODO: finalresult(midresults)
+    }
+}
+
+
 // Example code for how to use the parse functions together:
 //for (const auto& req : requests) {
 //    switch (req.id) {

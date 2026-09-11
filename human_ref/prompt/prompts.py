@@ -133,18 +133,12 @@ LOADER_DECL = """    auto tables = std::vector<ParquetTables>(%(count)d);
 LOADER_LOAD = """    tables[%(i)d].%(table)s = ReadParquetTable(path + "%(stem)s.parquet");
 """
 
-BUILDER_BUILD = """    std::vector<Database*> db(%(count)d);
+BUILDER_BUILD = """    std::vector<Database*> dbs(%(count)d);
 
     #pragma omp parallel for schedule(dynamic) num_threads(50)
-    for (int i = 0; i < %(count)d; ++i) db[i] = build(&tables[i]);
+    for (int i = 0; i < %(count)d; ++i) dbs[i] = build(&tables[i]);
 
     std::vector<QueryRequest> requests = read_requests();
 
-    std::vector<MidResult*> midresults(%(count)d);
-    for (const auto& request : requests) {
-        #pragma omp parallel for schedule(dynamic) num_threads(50)
-        for (int i = 0; i < %(count)d; ++i) midresults[i] = midresult(db[i], request);
-
-        // TODO: finalresult(midresults)
-    }
+    results(dbs, requests);
 """
