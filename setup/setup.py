@@ -3,7 +3,7 @@ import re
 import shutil
 from pathlib import Path
 
-from human_ref.prompt.prompts import ARGS_PARSER_QUERY, ARGS_PARSER_READ, BUILDER_BUILD, LOADER_DECL, LOADER_FIELD, LOADER_LOAD
+from human_ref.prompt.prompts import ARGS_PARSER_QUERY, ARGS_PARSER_READ, BUILDER_BUILD, LOADER_DECL, LOADER_FIELD, LOADER_LOAD, QIMPL, QUERY_CASE
 from sessions.sessions import make_session
 from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import run_query_json, dump_schema
@@ -36,6 +36,13 @@ def gen_builder(cpp: Path, partitions: Path) -> None:
     count = len(sorted(partitions.glob("*.parquet")))
     builds = BUILDER_BUILD % {"count": count}
     cpp.write_text(cpp.read_text().replace("// BUILDER_BUILD", builds.rstrip("\n")))
+
+
+def gen_query(cpp: Path, query_dir: Path) -> None:
+    ns = [int(p.stem[1:]) for p in sorted(query_dir.glob("q*.txt"), key=lambda p: int(p.stem[1:]))]
+    cpp.write_text(cpp.read_text().replace("// QN_INCLUDES", "\n".join(f'#include "q{n}_impl.hpp"' for n in ns)).replace("// QUERY_CASES", "\n".join(QUERY_CASE % {"n": n} for n in ns)))
+    for n in ns:
+        (cpp.parent / f"q{n}_impl.hpp").write_text(QIMPL % {"n": n})
 
 
 def setup_workspace(queries: list[int], infra: Path, sf10: Path, query: Path, human_input: Path, tables: list[str], partitions: Path) -> None:
@@ -73,3 +80,6 @@ def setup_workspace(queries: list[int], infra: Path, sf10: Path, query: Path, hu
 
     print("Generate builder into workspace")
     gen_builder(WORKSPACE / "infra" / "db.cpp", WORKSPACE / "parquets" / "partitions")
+
+    print("Generate query into workspace")
+    gen_query(WORKSPACE / "infra" / "query" / "query_impl.cpp", WORKSPACE / "querys")

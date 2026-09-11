@@ -104,6 +104,8 @@ STORAGE_CODE_INPUT = "开始完成storage layer"
 def query_code_input(n: int) -> str:
     return f"开始完成query {n}"
 
+# ====== args_parser ======
+
 ARGS_PARSER_READ = """    if (!(iss >> std::quoted(args.%(k)s))) {
         throw std::runtime_error("Q%(n)s: failed to parse %(k)s");
     }
@@ -124,6 +126,8 @@ inline Q%(n)sArgs parse_q%(n)s(const QueryRequest& request) {
 %(reads)s    return args;
 }"""
 
+# ====== loader ======
+
 LOADER_FIELD = """    ArrowTable %(table)s;
 """
 
@@ -133,6 +137,8 @@ LOADER_DECL = """    auto tables = std::vector<ParquetTables>(%(count)d);
 LOADER_LOAD = """    tables[%(i)d].%(table)s = ReadParquetTable(path + "%(stem)s.parquet");
 """
 
+# ====== builder ======
+
 BUILDER_BUILD = """    std::vector<Database*> dbs(%(count)d);
 
     #pragma omp parallel for schedule(dynamic) num_threads(50)
@@ -141,4 +147,27 @@ BUILDER_BUILD = """    std::vector<Database*> dbs(%(count)d);
     std::vector<QueryRequest> requests = read_requests();
 
     results(dbs, requests);
+"""
+
+# ====== query ======
+
+QUERY_CASE = """                case %(n)2d: run_query(%(n)d, dbs, parse_q%(n)d(request), run_nr, mid_q%(n)d, final_q%(n)d); break;"""
+
+# ====== qN ======
+
+QIMPL = """#include "query_impl.hpp"
+
+
+struct Q%(n)dMid {
+    // TODO: Data structures to hold the intermediate results of one partition
+};
+
+inline Q%(n)dMid* mid_q%(n)d(Database*, const Q%(n)dArgs&) {
+    // TODO: implement the per-partition execution logic for Q%(n)d
+    return new Q%(n)dMid{};
+}
+
+inline void final_q%(n)d(std::vector<Q%(n)dMid*>&, const Q%(n)dArgs&, int run_nr) {
+    // TODO: produce the final result from all midresults and write result<run_nr>.csv
+}
 """
