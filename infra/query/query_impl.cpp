@@ -7,7 +7,7 @@
 #include "args_parser.hpp"
 
 
-void query(Database*) {
+std::vector<QueryRequest> read_requests() {
     std::vector<QueryRequest> requests;
     std::string line;
     while (std::getline(std::cin, line)) {
@@ -23,11 +23,15 @@ void query(Database*) {
         }
         requests.push_back(QueryRequest{query_id, line});
     }
+    return requests;
+}
 
-    // TODO: implement the query execution logic on the Database - use arg parser example code below
-    for (auto& x : requests) {
-        std::cout << "Parsed: Q" << x.id << " args=" << x.line << "\n";
-    }
+
+MidResult* midresult(Database*, const QueryRequest& request) {
+    // TODO: implement the query execution logic on the Database producing this partition's MidResult - use arg parser example code below
+    std::cout << "Parsed: Q" << request.id << " args=" << request.line << "\n";
+
+    return new MidResult{};
 }
 
 

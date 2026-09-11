@@ -137,4 +137,14 @@ BUILDER_BUILD = """    std::vector<Database*> db(%(count)d);
 
     #pragma omp parallel for schedule(dynamic) num_threads(50)
     for (int i = 0; i < %(count)d; ++i) db[i] = build(&tables[i]);
+
+    std::vector<QueryRequest> requests = read_requests();
+
+    std::vector<MidResult*> midresults(%(count)d);
+    for (const auto& request : requests) {
+        #pragma omp parallel for schedule(dynamic) num_threads(50)
+        for (int i = 0; i < %(count)d; ++i) midresults[i] = midresult(db[i], request);
+
+        // TODO: finalresult(midresults)
+    }
 """

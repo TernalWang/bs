@@ -16,7 +16,5 @@ int main(int argc, char** argv) {
     std::vector<ParquetTables> tables = load(dir);
 // BUILDER_BUILD
 
-    // query(db);
-
     return 0;
 }
