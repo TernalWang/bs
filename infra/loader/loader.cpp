@@ -3,11 +3,11 @@
 #include "loader_utils.hpp"
 
 #include <stdio.h>
-#include <unistd.h>
 
 
-std::vector<ParquetTables> load(const std::string& path) {
-// TABLES_LOAD
-
-    return tables;
+ParquetTables load_one(const std::string& path, int i) {
+    ParquetTables t;
+    char file[64];
+// TABLES_LOAD_ONE
+    return t;
 }

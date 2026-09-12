@@ -23,7 +23,7 @@ def storage_plan_prompt(n: int) -> str:
         输出每张表的存储布局。只输出最终的存储布局。
 
         重要约束：
-        - 执行模型为两段式：每条查询先在每个分区上并行执行，各分区分别产出一个中间结果，再把全部分区的中间结果合并得到该查询的最终结果
+        - 执行模型为两段式：每条查询先在每个分区上并行执行，各分区分别产出一个中间结果，再把全部分区的中间结果合并得到该查询的最终结果（分区间已由框架并行调度，每个分区内部必须单线程执行；跨分区合并不限线程）
         - 必须存储全部数据，且存储方式要能无损还原(flatten)回原始数据
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
@@ -54,7 +54,7 @@ def overall_storage_prompt(queries: list[int]) -> str:
         输出每张表的存储布局。只输出最终的存储布局。
 
         重要约束：
-        - 执行模型为两段式：每条查询先在每个分区上并行执行，各分区分别产出一个中间结果，再把全部分区的中间结果合并得到该查询的最终结果
+        - 执行模型为两段式：每条查询先在每个分区上并行执行，各分区分别产出一个中间结果，再把全部分区的中间结果合并得到该查询的最终结果（分区间已由框架并行调度，每个分区内部必须单线程执行；跨分区合并不限线程）
         - 必须存储全部数据，且存储方式要能无损还原(flatten)回原始数据
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
@@ -83,8 +83,8 @@ def todo_plan_instructions(queries: list[int]) -> str:
 
         然后在这个数据结构上执行查询（执行阶段）。每条查询的执行接口已预定义在 `infra/query/q{{n}}_impl.hpp` 中，共三件：
         - `struct Q{{n}}Mid`：该查询的中间结果结构体（内容由你设计）
-        - `mid_q{{n}}(Database*, const Q{{n}}Args&)`：phase1，在单个分区上执行，产出一个 Q{{n}}Mid
-        - `final_q{{n}}(mids, args, run_nr)`：phase2，汇总全部分区的 Q{{n}}Mid，产出最终结果并写入 result<run_nr>.csv
+        - `mid_q{{n}}(Database*, const Q{{n}}Args&)`：phase1，在单个分区上执行，产出一个 Q{{n}}Mid；内部必须单线程——上层已由框架用 #pragma omp 并行调度各分区
+        - `final_q{{n}}(mids, args, run_nr)`：phase2，汇总全部分区的 Q{{n}}Mid，产出最终结果并写入 result<run_nr>.csv；不在并行区域内，可用任意线程数
         查询参数由框架解析好后以 Q{{n}}Args 传入；调度、分发、计时全部由框架完成，不要修改框架文件。
 
         把每条查询的输出写入单独的 csv 文件。
@@ -119,6 +119,7 @@ def coding_instructions(todo_file: str) -> str:
         "自己产生的中间文件（临时输出、对比副本、测试脚本等）一律写进 /tmp 下自建的时间戳目录（如 /tmp/work-$(date +%Y%m%d-%H%M%S)/），不要放 workspace，workspace 只保留最终交付物。"
         "DECIMAL舍入只许一次除非万不得已"
         "分区数会从当前的 10 个增长到上百甚至上千个，行数、基数、字典容量等同样会变：按上千分区的规模设计，当前观察到的数字不要写死，编码与结构在 build 期自适应。"
+        "mid 函数内部必须单线程（上层已由框架用 #pragma omp 并行调度各分区，嵌套并行只会互相踩）；final 函数不在并行区域，可用任意线程数。"
         "run_shell 可以看文件、跑 infra/build/db、"
         "小修改（替换字符串、改几行代码、勾选 TODO）用 sed/awk 完成。"
         "write_file 可以写文件。"
@@ -155,10 +156,8 @@ inline Q%(n)sArgs parse_q%(n)s(const QueryRequest& request) {
 LOADER_FIELD = """    ArrowTable %(table)s;
 """
 
-LOADER_DECL = """    auto tables = std::vector<ParquetTables>(%(count)d);
-"""
-
-LOADER_LOAD = """    tables[%(i)d].%(table)s = ReadParquetTable(path + "%(stem)s.parquet");
+LOADER_ONE = """    std::snprintf(file, sizeof(file), "%(table)s_%%04d.parquet", i + 1);
+    t.%(table)s = ReadParquetTable(path + file);
 """
 
 # ====== builder ======
@@ -166,7 +165,7 @@ LOADER_LOAD = """    tables[%(i)d].%(table)s = ReadParquetTable(path + "%(stem)s
 BUILDER_BUILD = """    std::vector<Database*> dbs(%(count)d);
 
     #pragma omp parallel for schedule(dynamic) num_threads(50)
-    for (int i = 0; i < %(count)d; ++i) dbs[i] = build(&tables[i]);
+    for (int i = 0; i < %(count)d; ++i) { ParquetTables t = load_one(dir, i); dbs[i] = build(&t); }
 
     std::vector<QueryRequest> requests = read_requests();
 

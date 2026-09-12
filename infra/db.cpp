@@ -12,8 +12,6 @@ int main(int argc, char** argv) {
     }
     std::string dir = argv[1];
     if (!dir.empty() && dir.back() != '/') dir += '/';
-
-    std::vector<ParquetTables> tables = load(dir);
 // BUILDER_BUILD
 
     return 0;
