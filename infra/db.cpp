@@ -2,6 +2,7 @@
 #include "loader.hpp"
 #include "query_impl.hpp"
 
+#include <filesystem>
 #include <iostream>
 #include <string>
 

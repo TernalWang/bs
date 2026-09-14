@@ -31,10 +31,8 @@ def gen_loader(hpp: Path, cpp: Path, tables: list[str]) -> None:
     cpp.write_text(cpp.read_text().replace("// TABLES_LOAD_ONE", ones.rstrip("\n")))
 
 
-def gen_builder(cpp: Path, partitions: Path) -> None:
-    count = len(sorted(partitions.glob("*.parquet")))
-    builds = BUILDER_BUILD % {"count": count}
-    cpp.write_text(cpp.read_text().replace("// BUILDER_BUILD", builds.rstrip("\n")))
+def gen_builder(cpp: Path) -> None:
+    cpp.write_text(cpp.read_text().replace("// BUILDER_BUILD", BUILDER_BUILD.rstrip("\n")))
 
 
 def gen_query(cpp: Path, query_dir: Path) -> None:
@@ -78,7 +76,7 @@ def setup_workspace(queries: list[int], infra: Path, sf10: Path, query: Path, hu
     gen_loader(WORKSPACE / "infra" / "include" / "loader.hpp", WORKSPACE / "infra" / "loader" / "loader.cpp", tables)
 
     print("Generate builder into workspace")
-    gen_builder(WORKSPACE / "infra" / "db.cpp", WORKSPACE / "parquets" / "partitions")
+    gen_builder(WORKSPACE / "infra" / "db.cpp")
 
     print("Generate query into workspace")
     gen_query(WORKSPACE / "infra" / "query" / "query_impl.cpp", WORKSPACE / "querys")

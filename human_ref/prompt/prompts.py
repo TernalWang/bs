@@ -162,10 +162,10 @@ LOADER_ONE = """    std::snprintf(file, sizeof(file), "%(table)s_%%04d.parquet",
 
 # ====== builder ======
 
-BUILDER_BUILD = """    std::vector<Database*> dbs(%(count)d);
+BUILDER_BUILD = """    std::vector<Database*> dbs(std::distance(std::filesystem::directory_iterator(dir), std::filesystem::directory_iterator()));
 
-    #pragma omp parallel for schedule(dynamic) num_threads(50)
-    for (int i = 0; i < %(count)d; ++i) { ParquetTables t = load_one(dir, i); dbs[i] = build(&t); }
+    #pragma omp parallel for schedule(dynamic) num_threads(5)
+    for (int i = 0; i < (int)dbs.size(); ++i) { ParquetTables t = load_one(dir, i); dbs[i] = build(&t); }
 
     std::vector<QueryRequest> requests = read_requests();
 
