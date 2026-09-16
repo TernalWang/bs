@@ -16,20 +16,21 @@ static std::chrono::steady_clock::time_point now() { return std::chrono::steady_
 static double ms(std::chrono::steady_clock::duration d) { return std::chrono::duration<double, std::milli>(d).count(); }
 
 template <typename F>
-static std::vector<std::invoke_result_t<F, Database*>> parallel_map(const std::vector<Database*>& dbs, F&& f) {
-    std::vector<std::invoke_result_t<F, Database*>> out(dbs.size());
+static std::vector<std::invoke_result_t<F, int>> parallel_map(int n, F&& f) {
+    std::vector<std::invoke_result_t<F, int>> out(n);
     #pragma omp parallel for schedule(dynamic) num_threads(50)
-    for (int i = 0; i < (int)dbs.size(); ++i) out[i] = f(dbs[i]);
+    for (int i = 0; i < n; ++i) out[i] = f(i);
     return out;
 }
 
 
 template <typename Mid, typename Args>
-static void run_query(int qid, const std::vector<Database*>& dbs, const Args& args, int run_nr,
+static void run_query(int qid, const std::string& dir, const Args& args, int run_nr,
                       Mid* (*mid)(Database*, const Args&),
                       void (*fin)(std::vector<Mid*>&, const Args&, int)) {
     const auto t0 = now();
-    std::vector<Mid*> mids = parallel_map(dbs, [&](Database* db) { return mid(db, args); });
+    int n = count_files(dir);
+    std::vector<Mid*> mids = parallel_map(n, [&](int i) { Database* db = load_db(dir, i); Mid* m = mid(db, args); delete db; return m; });
     const auto t1 = now();
     fin(mids, args, run_nr);
     const double p1 = ms(t1 - t0), p2 = ms(now() - t1);
@@ -57,7 +58,7 @@ std::vector<QueryRequest> read_requests() {
 }
 
 
-void results(const std::vector<Database*>& dbs, const std::vector<QueryRequest>& requests) {
+void results(const std::string& dir, const std::vector<QueryRequest>& requests) {
     int run_nr = 0;
     for (const auto& request : requests) {
         ++run_nr;

@@ -7,4 +7,4 @@
 
 
 std::vector<QueryRequest> read_requests();
-void results(const std::vector<Database*>& dbs, const std::vector<QueryRequest>& requests);
+void results(const std::string& dir, const std::vector<QueryRequest>& requests);

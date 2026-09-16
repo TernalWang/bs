@@ -162,7 +162,7 @@ LOADER_ONE = """    std::snprintf(file, sizeof(file), "%(table)s_%%04d.parquet",
 
 # ====== query ======
 
-QUERY_CASE = """                case %(n)2d: run_query(%(n)d, dbs, parse_q%(n)d(request), run_nr, mid_q%(n)d, final_q%(n)d); break;"""
+QUERY_CASE = """                case %(n)2d: run_query(%(n)d, dir, parse_q%(n)d(request), run_nr, mid_q%(n)d, final_q%(n)d); break;"""
 
 # ====== qN ======
 
