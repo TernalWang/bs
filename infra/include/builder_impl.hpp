@@ -8,3 +8,6 @@ struct Database {
 
 
 Database* build(ParquetTables*);
+void dump_db(Database*, const std::string& out_dir, int i);
+Database* load_db(const std::string& dump_dir, int i);
+void restore_db(const std::string& dump_dir, const std::string& out_dir);
