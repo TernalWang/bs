@@ -2,7 +2,6 @@
 #include "loader.hpp"
 #include "query_impl.hpp"
 
-#include <filesystem>
 #include <iostream>
 #include <string>
 
@@ -13,7 +12,7 @@ int main(int argc, char** argv) {
 
     if (mode == "--load" && argc == 4) {
         std::string dir = norm(argv[2]), out = norm(argv[3]);
-        int n = std::distance(std::filesystem::directory_iterator(dir), std::filesystem::directory_iterator());
+        int n = count_files(dir);
         #pragma omp parallel for schedule(dynamic) num_threads(50)
         for (int i = 0; i < n; ++i) { ParquetTables t = load_one(dir, i); Database* db = build(&t); dump_db(db, out, i); delete db; }
     } else if (mode == "--run" && argc == 3) {

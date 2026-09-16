@@ -3,7 +3,7 @@ import re
 import shutil
 from pathlib import Path
 
-from human_ref.prompt.prompts import ARGS_PARSER_QUERY, ARGS_PARSER_READ, BUILDER_BUILD, LOADER_FIELD, LOADER_ONE, QIMPL, QUERY_CASE
+from human_ref.prompt.prompts import ARGS_PARSER_QUERY, ARGS_PARSER_READ, LOADER_FIELD, LOADER_ONE, QIMPL, QUERY_CASE
 from sessions.sessions import make_session
 from tools.shell.shell_tool import WORKSPACE
 from tools.verify.duckdb_tool import run_query_json, dump_schema
@@ -29,10 +29,6 @@ def gen_loader(hpp: Path, cpp: Path, tables: list[str]) -> None:
     ones = "".join(LOADER_ONE % {"table": t} for t in tables)
     hpp.write_text(hpp.read_text().replace("// TABLES_FIELD", fields.rstrip("\n")))
     cpp.write_text(cpp.read_text().replace("// TABLES_LOAD_ONE", ones.rstrip("\n")))
-
-
-def gen_builder(cpp: Path) -> None:
-    cpp.write_text(cpp.read_text().replace("// BUILDER_BUILD", BUILDER_BUILD.rstrip("\n")))
 
 
 def gen_query(cpp: Path, query_dir: Path) -> None:
@@ -74,9 +70,6 @@ def setup_workspace(queries: list[int], infra: Path, sf10: Path, query: Path, hu
 
     print("Generate loader into workspace")
     gen_loader(WORKSPACE / "infra" / "include" / "loader.hpp", WORKSPACE / "infra" / "loader" / "loader.cpp", tables)
-
-    print("Generate builder into workspace")
-    gen_builder(WORKSPACE / "infra" / "db.cpp")
 
     print("Generate query into workspace")
     gen_query(WORKSPACE / "infra" / "query" / "query_impl.cpp", WORKSPACE / "querys")
