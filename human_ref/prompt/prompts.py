@@ -76,7 +76,7 @@ def overall_storage_prompt(queries: list[int]) -> str:
 TODO_PLAN_INPUT = "开始制定 TODO 计划"
 
 def todo_plan_instructions(queries: list[int]) -> str:
-    query_todos = "\n        ".join(f"- TODO_query{x}.md：Q{x} 执行阶段（q{x}_impl.hpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比。" for x in queries)
+    query_todos = "\n        ".join(f"- TODO_query{x}.md：Q{x} 执行阶段（q{x}_impl.hpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比；引擎用 `infra/build/db --run <dump目录>` 跑，stdin 喂参数行。" for x in queries)
     return f"""你是一名资深的数据库工程师和熟练的程序员。
         用 C++ 编写一个专用的高性能数据库引擎，只针对一组预定义的查询做优化。
         该引擎需要执行 {"、".join(f"querys/q{x}.txt" for x in queries)} 中描述的 SQL 查询（共 {len(queries)} 条！！）。
@@ -85,9 +85,13 @@ def todo_plan_instructions(queries: list[int]) -> str:
         首先，在文件 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中，把每个分区的 ArrowTable（原始数据本身不保序并且随着数据增长更不保序）转换为自定义的数据结构（构建阶段）。
         每个分区独立构建为一个 Database 结构体对象（全部分区同构、共用同一套布局，由框架并行调度）。
         使用高效的内存数据表示，让查询能够快速执行。存储方案写在文件 `storage_plan.txt` 里，它描述了如何把 parquet 数据存入内存以获得最优的查询执行性能。请按照这份存储方案来实现内存数据结构。
+        同时实现以下三个函数（框架在 db.cpp 三种模式里调用；落盘文件格式与命名自定）：
+        - `dump_db(Database*, dump_dir, i)`：--load 在 build 后把第 i 个分区落盘到 dump_dir（写性能不重要）
+        - `load_db(dump_dir, i)`：--run 每条查询的 phase1 逐分区 加载→执行→释放（读性能重要）
+        - `restore_db(dump_dir, restore_dir)`：--restore 从落盘还原原始数据到 restore_dir（性能不重要）
 
         然后在这个数据结构上执行查询（执行阶段）。每条查询的执行接口已预定义在 `infra/query/q{{n}}_impl.hpp` 中，共三件：
-        - `struct Q{{n}}Mid`：该查询的中间结果结构体（内容由你设计）
+        - `struct Q{{n}}Mid`：该查询的中间结果结构体（内容由你设计）；分区在 phase1 结束后即被框架释放，Q{{n}}Mid 必须自持有数据，不得保留指向 Database 内部的指针或视图
         - `mid_q{{n}}(Database*, const Q{{n}}Args&)`：phase1，在单个分区上执行，产出一个 Q{{n}}Mid；内部必须单线程——上层已由框架用 #pragma omp 并行调度各分区
         - `final_q{{n}}(mids, args, run_nr)`：phase2，汇总全部分区的 Q{{n}}Mid，产出最终结果并写入 result<run_nr>.csv；不在并行区域内，可用任意线程数
         查询参数由框架解析好后以 Q{{n}}Args 传入；调度、分发、计时全部由框架完成，不要修改框架文件。
@@ -105,7 +109,7 @@ def todo_plan_instructions(queries: list[int]) -> str:
 
         请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
         我之后会按顺序用不同的 agent 逐个执行，共 {len(queries) + 1} 个 agent（1 个构建阶段 + {len(queries)} 个查询阶段），所以把计划拆成对应的 {len(queries) + 1} 个文件：
-        - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：实现后 compile_cpp 编译通过即可。
+        - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：compile_cpp 编译通过；`infra/build/db --load <parquet目录> <dump目录>` 完成落盘；`--restore` 还原出的数据与原 parquet bag 等价（对比自行完成）。
         {query_todos}
         以上文件即执行顺序；每个文件里的步骤完成后逐项标记。本阶段唯一允许写的文件是 TODO_storage.md 与 TODO_query{{n}}.md，不得创建或修改任何其他文件。现在先不要开始实现，也先不要执行这些步骤。"""
 
@@ -125,7 +129,7 @@ def coding_instructions(todo_file: str) -> str:
         "DECIMAL舍入只许一次除非万不得已"
         "分区数会从当前的 10 个增长到上百甚至上千个，行数、基数、字典容量等同样会变：按上千分区的规模设计，当前观察到的数字不要写死，编码与结构在 build 期自适应。"
         "mid 函数内部必须单线程（上层已由框架用 #pragma omp 并行调度各分区，嵌套并行只会互相踩）；final 函数不在并行区域，可用任意线程数。"
-        "run_shell 可以看文件、跑 infra/build/db、"
+        "run_shell 可以看文件、跑 infra/build/db（--load 构建并落盘、--run 跑查询 stdin 喂参数行、--restore 还原校验）、"
         "小修改（替换字符串、改几行代码、勾选 TODO）用 sed/awk 完成。"
         "write_file 可以写文件。"
         "compile_cpp 可以把infra编译成db这个binary。"
