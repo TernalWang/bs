@@ -6,8 +6,8 @@ Database* build(ParquetTables*) {
     return new Database{};
 }
 
-void dump_db(Database*, const std::string& out_dir, int i) {
-    // TODO: dump the generated Database of partition i to out_dir
+void dump_db(Database*, const std::string& dump_dir, int i) {
+    // TODO: dump the generated Database of partition i to dump_dir
 }
 
 Database* load_db(const std::string& dump_dir, int i) {
@@ -15,6 +15,6 @@ Database* load_db(const std::string& dump_dir, int i) {
     return nullptr;
 }
 
-void restore_db(const std::string& dump_dir, const std::string& out_dir) {
-    // TODO: rebuild the original data losslessly from dump_dir into out_dir
+void restore_db(const std::string& dump_dir, const std::string& restore_dir) {
+    // TODO: rebuild the original data losslessly from dump_dir into restore_dir
 }

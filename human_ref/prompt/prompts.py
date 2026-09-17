@@ -76,7 +76,7 @@ def overall_storage_prompt(queries: list[int]) -> str:
 TODO_PLAN_INPUT = "开始制定 TODO 计划"
 
 def todo_plan_instructions(queries: list[int]) -> str:
-    query_todos = "\n        ".join(f"- TODO_query{x}.md：Q{x} 执行阶段（q{x}_impl.hpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比；引擎用 `infra/build/db --run <dump目录>` 跑，stdin 喂参数行。" for x in queries)
+    query_todos = "\n        ".join(f"- TODO_query{x}.md：Q{x} 执行阶段（q{x}_impl.hpp）。验收：能编译，且用 run_query 多组参数取得标准答案和延迟 baseline，与自己引擎的输出对比一致，并记录性能对比；引擎用 `infra/build/db --run` 跑，stdin 喂参数行。" for x in queries)
     return f"""你是一名资深的数据库工程师和熟练的程序员。
         用 C++ 编写一个专用的高性能数据库引擎，只针对一组预定义的查询做优化。
         该引擎需要执行 {"、".join(f"querys/q{x}.txt" for x in queries)} 中描述的 SQL 查询（共 {len(queries)} 条！！）。
@@ -109,7 +109,7 @@ def todo_plan_instructions(queries: list[int]) -> str:
 
         请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
         我之后会按顺序用不同的 agent 逐个执行，共 {len(queries) + 1} 个 agent（1 个构建阶段 + {len(queries)} 个查询阶段），所以把计划拆成对应的 {len(queries) + 1} 个文件：
-        - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：compile_cpp 编译通过；`infra/build/db --load <parquet目录> <dump目录>` 完成落盘；`--restore` 还原出的数据与原 parquet bag 等价（对比自行完成）。
+        - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：compile_cpp 编译通过；`infra/build/db --load <parquet目录>` 完成落盘；`--restore` 还原出的数据与原 parquet bag 等价（对比自行完成）。
         {query_todos}
         以上文件即执行顺序；每个文件里的步骤完成后逐项标记。本阶段唯一允许写的文件是 TODO_storage.md 与 TODO_query{{n}}.md，不得创建或修改任何其他文件。现在先不要开始实现，也先不要执行这些步骤。"""
 
