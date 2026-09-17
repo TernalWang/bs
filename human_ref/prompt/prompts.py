@@ -49,7 +49,8 @@ def overall_storage_prompt(queries: list[int]) -> str:
         - 各查询的模板：{"、".join(f"querys/q{x}.txt" for x in queries)}
         - DuckDB 生成的执行计划：{"、".join(f"duckdb_plans/plan_q{x}.txt" for x in queries)}
         - 表结构：duckdb_plans/schema.txt
-        - 框架骨架：infra/db.cpp（load → 每分区 build → 查询执行的主流程）与 infra/query/query_impl.cpp（两段式执行与调度机器）
+        - 框架骨架 infra/db.cpp：三种模式--load 从 parquet 构建并逐分区落盘、--run 从落盘加载分区执行查询、--restore 从落盘还原原始数据
+        - 框架骨架 infra/query/query_impl.cpp(--run)：读入查询请求并逐条分发执行；每条查询分两阶段：phase1 各分区并行加载、计算中间结果后释放，phase2 合并全部分区的中间结果产出最终输出
         - 针对单条查询已有的存储方案：{"、".join(f"storage_plan{x}.txt" for x in queries)}
 
         各单查询方案可能对同一张表给出不同甚至冲突的布局，你要权衡取舍：在同时服务全部查询的前提下，选择或融合出最优的设计；
@@ -58,7 +59,8 @@ def overall_storage_prompt(queries: list[int]) -> str:
 
         重要约束：
         - 执行模型为两段式：每条查询先在每个分区上并行执行，各分区分别产出一个中间结果，再把全部分区的中间结果合并得到该查询的最终结果（分区间已由框架并行调度，每个分区内部必须单线程执行；跨分区合并不限线程）
-        - 必须存储全部数据，且存储方式要能无损还原(flatten)回原始数据
+        - 分区不常驻内存：--load 把 build 好的分区落盘，每条查询执行时各线程从盘加载分区、算完即释放（落盘文件格式自定；读性能重要，写性能不重要）
+        - 必须存储全部数据，且存储编码可逆：flatten(Database) 与原表在 bag 语义下等价（行序除外，重复保留）；--restore 只输出还原结果，等价性验证自行完成
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
         - 数据以固定分区文件形式提供（当前 10 个分片）：所有分区同构、共用同一套存储布局，每个分区以 Arrow Table 输入、独立构建为一个 Database 对象，方案只需描述单个分区内部的布局；跨分区的并行调度由框架负责
