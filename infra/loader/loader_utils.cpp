@@ -1,6 +1,7 @@
 #include "loader_utils.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 #include <arrow/io/file.h>
 #include <arrow/memory_pool.h>
 #include <arrow/util/thread_pool.h>
@@ -33,14 +34,14 @@ static std::unique_ptr<parquet::arrow::FileReader> OpenParquetReader(
     if (!open_status.ok()) {
         std::cerr << "ERROR: FileReaderBuilder::Open: " << open_status.ToString()
                   << "\n";
-        std::exit(1);
+        std::quick_exit(1);
     }
     builder.properties(arrow_props);
     auto build_result = builder.Build();
     if (!build_result.ok()) {
         std::cerr << "ERROR: FileReaderBuilder::Build: "
                   << build_result.status().ToString() << "\n";
-        std::exit(1);
+        std::quick_exit(1);
     }
     return std::move(build_result).ValueOrDie();
 }
@@ -62,14 +63,14 @@ std::shared_ptr<arrow::Table> ReadParquetTable(const std::string& path) {
     if (!meta_file_result.ok()) {
         std::cerr << "ERROR: MemoryMappedFile::Open(meta): "
                   << meta_file_result.status().ToString() << "\n";
-        std::exit(1);
+        std::quick_exit(1);
     }
     auto meta_file = std::move(meta_file_result).ValueOrDie();
     auto meta_reader = OpenParquetReader(meta_file);
     auto md = meta_reader->parquet_reader()->metadata();
     if (!md) {
         std::cerr << "ERROR: Failed to fetch Parquet metadata\n";
-        std::exit(1);
+        std::quick_exit(1);
     }
     const int num_rgs = md->num_row_groups();
     if (num_rgs <= 0) {
@@ -77,7 +78,7 @@ std::shared_ptr<arrow::Table> ReadParquetTable(const std::string& path) {
         if (!table_result.ok()) {
             std::cerr << "ERROR: ReadTable(empty): "
                       << table_result.status().ToString() << "\n";
-            std::exit(1);
+            std::quick_exit(1);
         }
         auto table = std::move(table_result).ValueOrDie();
         const auto t1 = Clock::now();
@@ -154,7 +155,7 @@ std::shared_ptr<arrow::Table> ReadParquetTable(const std::string& path) {
     if (!final_concat.ok()) {
         std::cerr << "ERROR: ConcatenateTables: "
                   << final_concat.status().ToString() << "\n";
-        std::exit(1);
+        std::quick_exit(1);
     }
     std::shared_ptr<arrow::Table> table = *final_concat;
 
