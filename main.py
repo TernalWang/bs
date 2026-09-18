@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     for n in QUERIES:
         print(f"Generate query {n} storage plan")
-        result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=storage_plan_prompt(n), session=make_session(f"plan_q{n}"), max_turns=75))
+        result = asyncio.run(Runner.run(make_rw_agent(RW_INSTRUCTIONS), input=storage_plan_prompt(n), session=make_session(f"plan_q{n}"), max_turns=700))
         print_report(result)
 
     print("Generate overall storage plan")
