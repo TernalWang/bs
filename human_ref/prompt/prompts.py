@@ -88,7 +88,7 @@ def todo_plan_instructions(queries: list[int]) -> str:
         同时实现以下三个函数（框架在 db.cpp 三种模式里调用；落盘文件格式与命名自定）：
         - `dump_db(Database*, dump_dir, i)`：--load 在 build 后把第 i 个分区落盘到 dump_dir（写性能不重要）
         - `load_db(dump_dir, i)`：--run 每条查询的 phase1 逐分区 加载→执行→释放（读性能重要）
-        - `restore_db(dump_dir, restore_dir)`：--restore 从落盘还原原始数据到 restore_dir（性能不重要）
+        - `restore_db(dump_dir, restore_dir)`：--restore 从落盘还原原始数据到 restore_dir（性能不重要）；写出的 parquet 与原 parquet 压缩方式相同（codec 参考原文件元数据选，体积量级接近原文件即可）
 
         然后在这个数据结构上执行查询（执行阶段）。每条查询的执行接口已预定义在 `infra/query/q{{n}}_impl.hpp` 中，共三件：
         - `struct Q{{n}}Mid`：该查询的中间结果结构体（内容由你设计）；分区在 phase1 结束后即被框架释放，Q{{n}}Mid 必须自持有数据，不得保留指向 Database 内部的指针或视图
