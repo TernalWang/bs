@@ -25,7 +25,7 @@ def storage_plan_prompt(n: int) -> str:
         重要约束：
         - 执行模型为两段式：每条查询先在每个分区上并行执行，各分区分别产出一个中间结果，再把全部分区的中间结果合并得到该查询的最终结果（分区间已由框架并行调度，每个分区内部必须单线程执行；跨分区合并不限线程）
         - 分区不常驻内存：--load 把 build 好的分区落盘，每条查询执行时各线程从盘加载分区、算完即释放（落盘文件格式自定；读性能重要，写性能不重要）
-        - 必须存储全部数据，且存储编码可逆：flatten(Database) 与原表在 bag 语义下等价（行序除外，重复保留）；--restore 只输出还原结果，等价性验证自行完成
+        - 必须存储全部数据，且存储编码可逆：flatten(Database) 与原表在 bag 语义下等价（行序除外，重复保留）
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
         - 数据以固定分区文件形式提供（当前 10 个分片）：所有分区同构、共用同一套存储布局，每个分区以 Arrow Table 输入、独立构建为一个 Database 对象，方案只需描述单个分区内部的布局；跨分区的并行调度由框架负责
@@ -38,7 +38,7 @@ def storage_plan_prompt(n: int) -> str:
         DuckDB 对该查询生成的执行计划见文件：duckdb_plans/plan_q{n}.txt。
         表结构见文件：duckdb_plans/schema.txt。
         框架骨架见文件：
-        - infra/db.cpp：三种模式--load 从 parquet 构建并逐分区落盘、--run 从落盘加载分区执行查询、--restore 从落盘还原原始数据
+        - infra/db.cpp：两种模式--load 从 parquet 构建并逐分区落盘、--run 从落盘加载分区执行查询
         - infra/query/query_impl.cpp(--run)：读入查询请求并逐条分发执行；每条查询分两阶段：phase1 各分区并行加载、计算中间结果后释放，phase2 合并全部分区的中间结果产出最终输出
 
         基于以上查询、执行计划和表结构，为被访问的表给出详细且有创造性的存储布局方案，写入文件 storage_plan{n}.txt。"""
@@ -49,7 +49,7 @@ def overall_storage_prompt(queries: list[int]) -> str:
         - 各查询的模板：{"、".join(f"querys/q{x}.txt" for x in queries)}
         - DuckDB 生成的执行计划：{"、".join(f"duckdb_plans/plan_q{x}.txt" for x in queries)}
         - 表结构：duckdb_plans/schema.txt
-        - 框架骨架 infra/db.cpp：三种模式--load 从 parquet 构建并逐分区落盘、--run 从落盘加载分区执行查询、--restore 从落盘还原原始数据
+        - 框架骨架 infra/db.cpp：两种模式--load 从 parquet 构建并逐分区落盘、--run 从落盘加载分区执行查询
         - 框架骨架 infra/query/query_impl.cpp(--run)：读入查询请求并逐条分发执行；每条查询分两阶段：phase1 各分区并行加载、计算中间结果后释放，phase2 合并全部分区的中间结果产出最终输出
         - 针对单条查询已有的存储方案：{"、".join(f"storage_plan{x}.txt" for x in queries)}
 
@@ -60,7 +60,7 @@ def overall_storage_prompt(queries: list[int]) -> str:
         重要约束：
         - 执行模型为两段式：每条查询先在每个分区上并行执行，各分区分别产出一个中间结果，再把全部分区的中间结果合并得到该查询的最终结果（分区间已由框架并行调度，每个分区内部必须单线程执行；跨分区合并不限线程）
         - 分区不常驻内存：--load 把 build 好的分区落盘，每条查询执行时各线程从盘加载分区、算完即释放（落盘文件格式自定；读性能重要，写性能不重要）
-        - 必须存储全部数据，且存储编码可逆：flatten(Database) 与原表在 bag 语义下等价（行序除外，重复保留）；--restore 只输出还原结果，等价性验证自行完成
+        - 必须存储全部数据，且存储编码可逆：flatten(Database) 与原表在 bag 语义下等价（行序除外，重复保留）
         - 不允许冗余存储同一份数据，但可以使用压缩、编码、元数据或特殊数据结构
         - 优化目标：单节点内存分析型查询处理
         - 数据以固定分区文件形式提供（当前 10 个分片）：所有分区同构、共用同一套存储布局，每个分区以 Arrow Table 输入、独立构建为一个 Database 对象，方案只需描述单个分区内部的布局；跨分区的并行调度由框架负责
@@ -85,10 +85,9 @@ def todo_plan_instructions(queries: list[int]) -> str:
         首先，在文件 `infra/include/builder_impl.hpp`/`infra/builder/builder_impl.cpp` 中，把每个分区的 ArrowTable（原始数据本身不保序并且随着数据增长更不保序）转换为自定义的数据结构（构建阶段）。
         每个分区独立构建为一个 Database 结构体对象（全部分区同构、共用同一套布局，由框架并行调度）。
         使用高效的内存数据表示，让查询能够快速执行。存储方案写在文件 `storage_plan.txt` 里，它描述了如何把 parquet 数据存入内存以获得最优的查询执行性能。请按照这份存储方案来实现内存数据结构。
-        同时实现以下三个函数（框架在 db.cpp 三种模式里调用；落盘文件格式与命名自定）：
+        同时实现以下两个函数（框架在 db.cpp 两种模式里调用；落盘文件格式与命名自定）：
         - `dump_db(Database*, dump_dir, i)`：--load 在 build 后把第 i 个分区落盘到 dump_dir（写性能不重要）
         - `load_db(dump_dir, i)`：--run 每条查询的 phase1 逐分区 加载→执行→释放（读性能重要）
-        - `restore_db(dump_dir, restore_dir)`：--restore 从落盘还原原始数据到 restore_dir（性能不重要）；写出的 parquet 与原 parquet 压缩方式相同（codec 参考原文件元数据选，体积量级接近原文件即可）
 
         然后在这个数据结构上执行查询（执行阶段）。每条查询的执行接口已预定义在 `infra/query/q{{n}}_impl.hpp` 中，共三件：
         - `struct Q{{n}}Mid`：该查询的中间结果结构体（内容由你设计）；分区在 phase1 结束后即被框架释放，Q{{n}}Mid 必须自持有数据，不得保留指向 Database 内部的指针或视图
@@ -109,7 +108,7 @@ def todo_plan_instructions(queries: list[int]) -> str:
 
         请为实现这个数据库引擎制定 TODO 计划，包含各个步骤，并附上数据结构等方面的概念性注释。
         我之后会按顺序用不同的 agent 逐个执行，共 {len(queries) + 1} 个 agent（1 个构建阶段 + {len(queries)} 个查询阶段），所以把计划拆成对应的 {len(queries) + 1} 个文件：
-        - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：compile_cpp 编译通过；`infra/build/db --load <parquet目录>` 完成落盘；`--restore` 还原出的数据与原 parquet bag 等价（对比自行完成）。
+        - TODO_storage.md：构建阶段（builder_impl.hpp / builder_impl.cpp）。验收：compile_cpp 编译通过；`infra/build/db --load <parquet目录>` 完成落盘。
         {query_todos}
         以上文件即执行顺序；每个文件里的步骤完成后逐项标记。本阶段唯一允许写的文件是 TODO_storage.md 与 TODO_query{{n}}.md，不得创建或修改任何其他文件。现在先不要开始实现，也先不要执行这些步骤。"""
 
@@ -129,7 +128,7 @@ def coding_instructions(todo_file: str) -> str:
         "DECIMAL舍入只许一次除非万不得已"
         "分区数会从当前的 10 个增长到上百甚至上千个，行数、基数、字典容量等同样会变：按上千分区的规模设计，当前观察到的数字不要写死，编码与结构在 build 期自适应。"
         "mid 函数内部必须单线程（上层已由框架用 #pragma omp 并行调度各分区，嵌套并行只会互相踩）；final 函数不在并行区域，可用任意线程数。"
-        "run_shell 可以看文件、跑 infra/build/db（--load 构建并落盘、--run 跑查询 stdin 喂参数行、--restore 还原校验）、"
+        "run_shell 可以看文件、跑 infra/build/db（--load 构建并落盘、--run 跑查询 stdin 喂参数行）、"
         "小修改（替换字符串、改几行代码、勾选 TODO）用 sed/awk 完成。"
         "write_file 可以写文件。"
         "compile_cpp 可以把infra编译成db这个binary。"

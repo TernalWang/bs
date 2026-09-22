@@ -56,7 +56,6 @@ def setup_workspace(queries: list[int], infra: Path, sf10: Path, query: Path, hu
 
     print("Create final dirs")
     (WORKSPACE / "parquets" / "final" / "final_dump").mkdir(parents=True)
-    (WORKSPACE / "parquets" / "final" / "final_restore").mkdir(parents=True)
 
     print("Copy querys into workspace")
     shutil.copytree(query, WORKSPACE / "querys", ignore=lambda d, ns: [n for n in ns if n.startswith("q") and n[1:-4].isdigit() and int(n[1:-4]) not in queries], dirs_exist_ok=False)

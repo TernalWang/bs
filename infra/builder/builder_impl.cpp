@@ -14,7 +14,3 @@ Database* load_db(const std::string& dump_dir, int i) {
     // TODO: load the dumped Database of partition i from dump_dir
     return nullptr;
 }
-
-void restore_db(const std::string& dump_dir, const std::string& restore_dir) {
-    // TODO: rebuild the original data losslessly from dump_dir into restore_dir
-}
