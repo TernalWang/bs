@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
 
     if (mode == "--load" && argc == 3) {
         std::string dir = norm(argv[2]);
-        int n = count_files(dir);
+        int n = count_parquets(dir);
         #pragma omp parallel for schedule(dynamic) num_threads(10)
         for (int i = 0; i < n; ++i) { ParquetTables t = load_one(dir, i); Database* db = build(&t); dump_db(db, dump_dir, i); delete db; }
     } else if (mode == "--run" && argc == 2) {

@@ -29,7 +29,7 @@ static void run_query(int qid, const std::string& dir, const Args& args, int run
                       Mid* (*mid)(Database*, const Args&),
                       void (*fin)(std::vector<Mid*>&, const Args&, int)) {
     const auto t0 = now();
-    int n = count_files(dir);
+    int n = count_parquets(dir);
     std::vector<Mid*> mids = parallel_map(n, [&](int i) { Database* db = load_db(dir, i); Mid* m = mid(db, args); delete db; return m; });
     const auto t1 = now();
     fin(mids, args, run_nr);

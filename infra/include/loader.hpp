@@ -5,8 +5,11 @@
 #include <memory>
 #include <string>
 
-inline int count_files(const std::string& dir) {
-    return (int)std::distance(std::filesystem::directory_iterator(dir), std::filesystem::directory_iterator());
+inline int count_parquets(const std::string& dir) {
+    int n = 0;
+    for (const auto& entry : std::filesystem::directory_iterator(dir))
+        if (entry.path().extension() == ".parquet") ++n;
+    return n;
 }
 
 struct ParquetTables {
