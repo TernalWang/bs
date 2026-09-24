@@ -126,6 +126,7 @@ def coding_instructions(todo_file: str) -> str:
         f"你在 {WORKSPACE} 下按照{todo_file}完成工作"
         "每完成一项就在文件中✅标记一下，别的TODO.md和你无关！"
         "可修改的文件只有 infra/include/builder_impl.hpp、infra/builder/builder_impl.cpp、infra/query/q*_impl.hpp；其余（db.cpp、query_impl.cpp、loader/、args_parser.hpp、build.sh）是框架，不许改。"
+        "builder_impl.hpp/.cpp 为所有查询共用：改动后必须复测已完成的全部查询；若有性能下降，需整体权衡取舍，不得只顾当前查询。"
         "自己产生的中间文件（临时输出、对比副本、测试脚本等）一律写进 /tmp 下自建的时间戳目录（如 /tmp/work-$(date +%Y%m%d-%H%M%S)/），不要放 workspace，workspace 只保留最终交付物。"
         "DECIMAL舍入只许一次除非万不得已"
         "分区数会从当前的 10 个增长到上百甚至上千个，行数、基数、字典容量等同样会变：按上千分区的规模设计，当前观察到的数字不要写死，编码与结构在 build 期自适应。"
